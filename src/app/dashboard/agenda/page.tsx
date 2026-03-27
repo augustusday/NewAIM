@@ -19,8 +19,13 @@ import {
   Settings2,
   Save,
   RefreshCw,
+  UserPlus,
+  Pencil,
+  Trash2,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 import { useClinic } from "@/hooks/use-clinic";
 import {
   getAppointmentsForDate,
@@ -35,6 +40,9 @@ import {
   createAppointmentType,
   updateAppointmentType,
   deleteAppointmentType,
+  createDoctor,
+  updateDoctor,
+  deleteDoctor,
   type AppointmentFull,
 } from "@/lib/db/agenda";
 import type { Doctor, AppointmentType, AvailabilityTemplate } from "@/lib/database.types";
@@ -134,10 +142,11 @@ function getWeekDates(year: number, month: number, day: number): string[] {
 // ─── Doctor Availability Modal ─────────────────────────────────────────────────
 const DAY_NAMES = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
+type TimePeriod = { start: string; end: string };
+
 interface DayConfig {
   active: boolean;
-  start_time: string;
-  end_time: string;
+  periods: TimePeriod[];
   slot_duration_min: number;
   id?: string;
 }
@@ -151,8 +160,8 @@ function DoctorAvailabilityModal({
   doctor: Doctor;
   onClose: () => void;
 }) {
-  const defaultConfig: DayConfig = { active: false, start_time: "08:00", end_time: "18:00", slot_duration_min: 30 };
-  const [days, setDays] = useState<DayConfig[]>(Array.from({ length: 7 }, () => ({ ...defaultConfig })));
+  const defaultConfig: DayConfig = { active: false, periods: [{ start: "08:00", end: "18:00" }], slot_duration_min: 30 };
+  const [days, setDays] = useState<DayConfig[]>(Array.from({ length: 7 }, () => ({ ...defaultConfig, periods: [{ start: "08:00", end: "18:00" }] })));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -163,7 +172,10 @@ function DoctorAvailabilityModal({
         prev.map((d, i) => {
           const t = templates.find((t: AvailabilityTemplate) => t.day_of_week === i);
           if (!t) return d;
-          return { active: t.active, start_time: t.start_time, end_time: t.end_time, slot_duration_min: t.slot_duration_min, id: t.id };
+          const rawPeriods = Array.isArray(t.time_periods) && t.time_periods.length > 0
+            ? (t.time_periods as TimePeriod[])
+            : [{ start: t.start_time, end: t.end_time }];
+          return { active: t.active, periods: rawPeriods, slot_duration_min: t.slot_duration_min, id: t.id };
         })
       );
       setLoading(false);
@@ -173,16 +185,30 @@ function DoctorAvailabilityModal({
   const updateDay = (i: number, patch: Partial<DayConfig>) =>
     setDays((prev) => prev.map((d, idx) => idx === i ? { ...d, ...patch } : d));
 
+  const updatePeriod = (dayIdx: number, periodIdx: number, patch: Partial<TimePeriod>) =>
+    setDays((prev) => prev.map((d, i) => {
+      if (i !== dayIdx) return d;
+      const periods = d.periods.map((p, pi) => pi === periodIdx ? { ...p, ...patch } : p);
+      return { ...d, periods };
+    }));
+
+  const addPeriod = (dayIdx: number) =>
+    setDays((prev) => prev.map((d, i) => i !== dayIdx ? d : { ...d, periods: [...d.periods, { start: "14:00", end: "18:00" }] }));
+
+  const removePeriod = (dayIdx: number, periodIdx: number) =>
+    setDays((prev) => prev.map((d, i) => i !== dayIdx ? d : { ...d, periods: d.periods.filter((_, pi) => pi !== periodIdx) }));
+
   const handleSave = async () => {
     setSaving(true);
     await Promise.all(
       days.map((d, i) => {
-        if (!d.active && !d.id) return Promise.resolve(); // skip inactive with no record
+        if (!d.active && !d.id) return Promise.resolve();
         return upsertAvailabilityTemplate(clinicId, doctor.id, i, {
-          start_time: d.start_time,
-          end_time: d.end_time,
+          start_time: d.periods[0]?.start ?? "08:00",
+          end_time: d.periods[0]?.end ?? "18:00",
           slot_duration_min: d.slot_duration_min,
           active: d.active,
+          time_periods: d.periods,
         });
       })
     );
@@ -254,35 +280,52 @@ function DoctorAvailabilityModal({
                 </div>
 
                 {day.active && (
-                  <div className="flex items-center gap-2 ml-11">
-                    <div className="flex items-center gap-1.5 flex-1">
-                      <Clock size={11} className="text-z-dim shrink-0" />
-                      <input
-                        type="time"
-                        value={day.start_time}
-                        onChange={(e) => updateDay(i, { start_time: e.target.value })}
-                        className="text-xs outline-none rounded-lg px-2 py-1.5 w-full"
-                        style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text)" }}
-                      />
-                    </div>
-                    <span className="text-xs text-z-faint">até</span>
-                    <div className="flex-1">
-                      <input
-                        type="time"
-                        value={day.end_time}
-                        onChange={(e) => updateDay(i, { end_time: e.target.value })}
-                        className="text-xs outline-none rounded-lg px-2 py-1.5 w-full"
-                        style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text)" }}
-                      />
-                    </div>
-                    <select
-                      value={day.slot_duration_min}
-                      onChange={(e) => updateDay(i, { slot_duration_min: Number(e.target.value) })}
-                      className="text-xs outline-none rounded-lg px-2 py-1.5"
-                      style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text)" }}
+                  <div className="ml-11 mt-2 space-y-1.5">
+                    {day.periods.map((period, pi) => (
+                      <div key={pi} className="flex items-center gap-2">
+                        <Clock size={11} className="text-z-dim shrink-0" />
+                        <input
+                          type="time"
+                          value={period.start}
+                          onChange={(e) => updatePeriod(i, pi, { start: e.target.value })}
+                          className="text-xs outline-none rounded-lg px-2 py-1.5 flex-1"
+                          style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text)" }}
+                        />
+                        <span className="text-xs text-z-faint">–</span>
+                        <input
+                          type="time"
+                          value={period.end}
+                          onChange={(e) => updatePeriod(i, pi, { end: e.target.value })}
+                          className="text-xs outline-none rounded-lg px-2 py-1.5 flex-1"
+                          style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text)" }}
+                        />
+                        {pi === 0 ? (
+                          <select
+                            value={day.slot_duration_min}
+                            onChange={(e) => updateDay(i, { slot_duration_min: Number(e.target.value) })}
+                            className="text-xs outline-none rounded-lg px-2 py-1.5"
+                            style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text)" }}
+                          >
+                            {[15, 20, 30, 45, 60].map((n) => <option key={n} value={n}>{n}min</option>)}
+                          </select>
+                        ) : (
+                          <button
+                            onClick={() => removePeriod(i, pi)}
+                            className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:text-red-400 transition-colors"
+                            style={{ background: "var(--input)", border: "1px solid var(--border)" }}
+                          >
+                            <X size={11} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => addPeriod(i)}
+                      className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg transition-colors mt-0.5"
+                      style={{ color: "#019A67", background: "rgba(1,154,103,0.07)", border: "1px dashed rgba(1,154,103,0.3)" }}
                     >
-                      {[15, 20, 30, 45, 60].map((n) => <option key={n} value={n}>{n}min</option>)}
-                    </select>
+                      <Plus size={10} /> add break
+                    </button>
                   </div>
                 )}
               </div>
@@ -306,6 +349,332 @@ function DoctorAvailabilityModal({
             {saving ? <RefreshCw size={13} className="animate-spin" /> : saved ? <CheckCircle size={13} /> : <Save size={13} />}
             {saved ? "Salvo!" : "Salvar disponibilidade"}
           </motion.button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Doctor Management Modal ───────────────────────────────────────────────────
+const DOCTOR_COLORS = ["#019A67","#3b82f6","#8b5cf6","#f59e0b","#e05555","#06b6d4","#ec4899","#10b981"];
+
+interface DoctorForm {
+  name: string;
+  specialty: string;
+  crm_number: string;
+  color: string;
+  observations: string;
+  consultation_fee: string;
+  insurance_plans: string;
+}
+
+const emptyDoctorForm = (): DoctorForm => ({
+  name: "", specialty: "", crm_number: "", color: DOCTOR_COLORS[0],
+  observations: "", consultation_fee: "", insurance_plans: "",
+});
+
+function DoctorManagementModal({
+  clinicId,
+  doctors,
+  onClose,
+  onChanged,
+  onSchedule,
+}: {
+  clinicId: string;
+  doctors: Doctor[];
+  onClose: () => void;
+  onChanged: () => void;
+  onSchedule: (doctor: Doctor) => void;
+}) {
+  const [tab, setTab] = useState<"list" | "add" | "bulk">("list");
+  const [list, setList] = useState<Doctor[]>(doctors);
+  const [form, setForm] = useState<DoctorForm>(emptyDoctorForm());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  const [bulkResult, setBulkResult] = useState<{ ok: number; errors: string[] } | null>(null);
+  const [bulkSaving, setBulkSaving] = useState(false);
+
+  const refresh = async () => {
+    const updated = await getDoctors(clinicId);
+    setList(updated);
+    onChanged();
+  };
+
+  const startEdit = (doc: Doctor) => {
+    setEditingId(doc.id);
+    setForm({
+      name: doc.name,
+      specialty: doc.specialty ?? "",
+      crm_number: doc.crm_number ?? "",
+      color: doc.color,
+      observations: doc.observations ?? "",
+      consultation_fee: doc.consultation_fee != null ? String(doc.consultation_fee) : "",
+      insurance_plans: (doc.insurance_plans ?? []).join(", "),
+    });
+    setTab("add");
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    const payload = {
+      name: form.name.trim(),
+      specialty: form.specialty.trim() || undefined,
+      crm_number: form.crm_number.trim() || undefined,
+      color: form.color,
+      observations: form.observations.trim() || undefined,
+      consultation_fee: form.consultation_fee ? parseFloat(form.consultation_fee) : undefined,
+      insurance_plans: form.insurance_plans
+        ? form.insurance_plans.split(",").map((s) => s.trim()).filter(Boolean)
+        : [],
+    };
+    if (editingId) {
+      await updateDoctor(editingId, payload);
+    } else {
+      await createDoctor(clinicId, payload);
+    }
+    setSaving(false);
+    setForm(emptyDoctorForm());
+    setEditingId(null);
+    setTab("list");
+    await refresh();
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteDoctor(id);
+    setList((prev) => prev.filter((d) => d.id !== id));
+    onChanged();
+  };
+
+  const handleBulkImport = async () => {
+    const lines = bulkText.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (!lines.length) return;
+    setBulkSaving(true);
+    const errors: string[] = [];
+    let ok = 0;
+    for (const line of lines) {
+      // Format: Nome; Especialidade; CRM; Convênios (separados por |); Valor particular
+      const parts = line.split(";").map((p) => p.trim());
+      const name = parts[0];
+      if (!name) { errors.push(`Linha inválida: "${line}"`); continue; }
+      const specialty = parts[1] || undefined;
+      const crm_number = parts[2] || undefined;
+      const insurance_plans = parts[3] ? parts[3].split("|").map((s) => s.trim()).filter(Boolean) : [];
+      const consultation_fee = parts[4] ? parseFloat(parts[4].replace(",", ".")) : undefined;
+      const color = DOCTOR_COLORS[ok % DOCTOR_COLORS.length];
+      const res = await createDoctor(clinicId, { name, specialty, crm_number, color, insurance_plans, consultation_fee });
+      if (res) ok++; else errors.push(`Falha ao importar: "${name}"`);
+    }
+    setBulkSaving(false);
+    setBulkResult({ ok, errors });
+    if (ok > 0) await refresh();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 8 }}
+        className="w-full max-w-xl rounded-2xl flex flex-col"
+        style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.18)", boxShadow: "0 24px 64px rgba(0,0,0,0.6)", maxHeight: "90vh" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(1,154,103,0.12)", border: "1px solid rgba(1,154,103,0.2)" }}>
+              <Stethoscope size={14} style={{ color: "#019A67" }} />
+            </div>
+            <h3 className="text-sm font-medium text-z-text">Gerenciar Médicos</h3>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-z-text transition-colors" style={{ background: "var(--muted)" }}>
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 px-6 pt-4 shrink-0">
+          {[
+            { key: "list", label: "Médicos cadastrados" },
+            { key: "add", label: editingId ? "Editar médico" : "Adicionar médico" },
+            { key: "bulk", label: "Importar em lote" },
+          ].map((t) => (
+            <button key={t.key} onClick={() => { setTab(t.key as typeof tab); if (t.key !== "add") { setEditingId(null); setForm(emptyDoctorForm()); } }}
+              className="px-3 py-1.5 rounded-lg text-xs transition-all"
+              style={{
+                background: tab === t.key ? "rgba(1,154,103,0.15)" : "var(--muted)",
+                border: tab === t.key ? "1px solid rgba(1,154,103,0.3)" : "1px solid var(--border)",
+                color: tab === t.key ? "#01c47f" : "var(--z-text-dim)",
+              }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {/* LIST TAB */}
+          {tab === "list" && (
+            <div className="space-y-2">
+              {list.length === 0 && (
+                <div className="text-center py-10">
+                  <Stethoscope size={28} className="text-z-faint mx-auto mb-3" />
+                  <p className="text-sm text-z-dim">Nenhum médico cadastrado</p>
+                  <button onClick={() => setTab("add")} className="mt-3 text-xs text-[#019A67] hover:text-[#01c47f]">Adicionar o primeiro médico →</button>
+                </div>
+              )}
+              {list.map((doc) => (
+                <div key={doc.id} className="flex items-center gap-3 px-3 py-3 rounded-xl"
+                  style={{ background: "var(--surface-2)", border: "1px solid rgba(1,154,103,0.08)" }}>
+                  <div className="w-3 h-3 rounded-full shrink-0" style={{ background: doc.color }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-z-text truncate">{doc.name}</p>
+                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                      {doc.specialty && <span className="text-xs text-z-dim">{doc.specialty}</span>}
+                      {doc.crm_number && <span className="text-xs text-z-faint">CRM {doc.crm_number}</span>}
+                      {doc.consultation_fee != null && (
+                        <span className="text-xs" style={{ color: "#019A67" }}>R$ {Number(doc.consultation_fee).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                      )}
+                      {(doc.insurance_plans ?? []).length > 0 && (
+                        <span className="text-xs text-z-faint">{doc.insurance_plans.join(", ")}</span>
+                      )}
+                    </div>
+                    {doc.observations && <p className="text-xs text-z-faint mt-0.5 truncate">{doc.observations}</p>}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => onSchedule(doc)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#019A67] transition-colors" title="Horários">
+                      <Clock size={13} />
+                    </button>
+                    <button onClick={() => startEdit(doc)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#019A67] transition-colors" title="Editar">
+                      <Pencil size={13} />
+                    </button>
+                    <button onClick={() => handleDelete(doc.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#e05555] transition-colors" title="Remover">
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button onClick={() => setTab("add")}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-z-dim border border-dashed transition-all hover:text-[#019A67] hover:border-[rgba(1,154,103,0.4)]"
+                style={{ borderColor: "var(--border)" }}>
+                <Plus size={14} /> Adicionar médico
+              </button>
+            </div>
+          )}
+
+          {/* ADD/EDIT TAB */}
+          {tab === "add" && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-z-dim block mb-1.5">Nome *</label>
+                  <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                    placeholder="Dr. João Silva"
+                    className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
+                    style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+                </div>
+                <div>
+                  <label className="text-xs text-z-dim block mb-1.5">Especialidade</label>
+                  <input value={form.specialty} onChange={(e) => setForm((f) => ({ ...f, specialty: e.target.value }))}
+                    placeholder="Cardiologia"
+                    className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
+                    style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-z-dim block mb-1.5">CRM</label>
+                  <input value={form.crm_number} onChange={(e) => setForm((f) => ({ ...f, crm_number: e.target.value }))}
+                    placeholder="SP-123456"
+                    className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
+                    style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+                </div>
+                <div>
+                  <label className="text-xs text-z-dim block mb-1.5">Valor consulta particular (R$)</label>
+                  <input value={form.consultation_fee} onChange={(e) => setForm((f) => ({ ...f, consultation_fee: e.target.value }))}
+                    placeholder="250,00" type="number" min="0" step="0.01"
+                    className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
+                    style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-z-dim block mb-1.5">Convênios aceitos (separados por vírgula)</label>
+                <input value={form.insurance_plans} onChange={(e) => setForm((f) => ({ ...f, insurance_plans: e.target.value }))}
+                  placeholder="Unimed, Bradesco Saúde, SulAmérica"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
+                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+              </div>
+              <div>
+                <label className="text-xs text-z-dim block mb-1.5">Observações (opcional)</label>
+                <textarea value={form.observations} onChange={(e) => setForm((f) => ({ ...f, observations: e.target.value }))}
+                  placeholder="Informações adicionais sobre o médico..." rows={2}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none resize-none"
+                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+              </div>
+              <div>
+                <label className="text-xs text-z-dim block mb-1.5">Cor na agenda</label>
+                <div className="flex gap-2 flex-wrap">
+                  {DOCTOR_COLORS.map((c) => (
+                    <button key={c} type="button" onClick={() => setForm((f) => ({ ...f, color: c }))}
+                      className="w-7 h-7 rounded-lg transition-all"
+                      style={{ background: c, outline: form.color === c ? `2px solid white` : "none", outlineOffset: "2px", boxShadow: form.color === c ? `0 0 8px ${c}80` : "none" }} />
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => { setTab("list"); setEditingId(null); setForm(emptyDoctorForm()); }}
+                  className="flex-1 py-2.5 rounded-xl text-sm text-z-dim"
+                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+                  Cancelar
+                </button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                  onClick={handleSave} disabled={saving || !form.name.trim()}
+                  className="flex-1 py-2.5 rounded-xl text-sm text-white font-medium disabled:opacity-50"
+                  style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+                  {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Cadastrar médico"}
+                </motion.button>
+              </div>
+            </div>
+          )}
+
+          {/* BULK TAB */}
+          {tab === "bulk" && (
+            <div className="space-y-4">
+              <div className="px-3 py-3 rounded-xl text-xs text-z-dim space-y-1" style={{ background: "rgba(1,154,103,0.06)", border: "1px solid rgba(1,154,103,0.12)" }}>
+                <p className="font-medium text-z-text">Formato por linha:</p>
+                <p>Nome; Especialidade; CRM; Convênio 1 | Convênio 2; Valor particular</p>
+                <p className="text-z-faint">Exemplo:</p>
+                <p className="font-mono text-z-faint">Dr. Ana Lima; Cardiologia; SP-123456; Unimed | Bradesco; 350</p>
+                <p className="font-mono text-z-faint">Dr. Pedro Costa; Ortopedia; RJ-789; ; 200</p>
+                <p className="text-z-faint">Campos opcionais podem ser deixados em branco (manter o ;)</p>
+              </div>
+              <div>
+                <label className="text-xs text-z-dim block mb-1.5">Cole os dados abaixo (um médico por linha):</label>
+                <textarea
+                  value={bulkText}
+                  onChange={(e) => { setBulkText(e.target.value); setBulkResult(null); }}
+                  rows={8}
+                  placeholder={"Dr. Ana Lima; Cardiologia; SP-123456; Unimed | Bradesco; 350\nDr. Pedro Costa; Ortopedia; RJ-789; ; 200"}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm font-mono text-z-text placeholder:text-z-faint outline-none resize-none"
+                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+                />
+              </div>
+              {bulkResult && (
+                <div className="px-3 py-2.5 rounded-xl text-xs space-y-1"
+                  style={{ background: bulkResult.errors.length ? "rgba(224,85,85,0.06)" : "rgba(1,154,103,0.06)", border: `1px solid ${bulkResult.errors.length ? "rgba(224,85,85,0.2)" : "rgba(1,154,103,0.2)"}` }}>
+                  <p style={{ color: "#01c47f" }}>{bulkResult.ok} médico(s) importado(s) com sucesso</p>
+                  {bulkResult.errors.map((e, i) => <p key={i} style={{ color: "#e05555" }}>{e}</p>)}
+                </div>
+              )}
+              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                onClick={handleBulkImport} disabled={bulkSaving || !bulkText.trim()}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-white font-medium disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+                <Upload size={14} />
+                {bulkSaving ? "Importando..." : "Importar médicos"}
+              </motion.button>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>
@@ -441,6 +810,7 @@ function NewAppointmentDialog({
   const [form, setForm] = useState({
     patient_name: "",
     patient_phone: "",
+    contact_id: "" as string,
     doctor_id: doctors[0]?.id ?? "",
     type_id: appointmentTypes[0]?.id ?? "",
     scheduled_date: initialDate,
@@ -451,6 +821,31 @@ function NewAppointmentDialog({
   const [error, setError] = useState("");
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+
+  // Contact search state
+  const [contactSearch, setContactSearch] = useState("");
+  const [contactResults, setContactResults] = useState<{ id: string; full_name: string; phone: string | null }[]>([]);
+  const [contactSearchOpen, setContactSearchOpen] = useState(false);
+  const [contactSearching, setContactSearching] = useState(false);
+
+  // Search contacts when user types
+  useEffect(() => {
+    const q = contactSearch.trim();
+    if (q.length < 2) { setContactResults([]); return; }
+    setContactSearching(true);
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, full_name, phone")
+        .eq("clinic_id", clinicId)
+        .or(`full_name.ilike.%${q}%,phone.ilike.%${q}%`)
+        .order("full_name")
+        .limit(6);
+      setContactResults(data ?? []);
+      setContactSearching(false);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [contactSearch, clinicId]);
 
   const selectedType = appointmentTypes.find((t) => t.id === form.type_id);
   const duration = selectedType?.duration_minutes ?? 30;
@@ -476,10 +871,27 @@ function NewAppointmentDialog({
     setSaving(true);
     setError("");
 
+    // If no contact was selected, create one from the typed name/phone
+    let contactId = form.contact_id || undefined;
+    if (!contactId && form.patient_name.trim()) {
+      const { data: newContact } = await supabase
+        .from("contacts")
+        .insert({
+          clinic_id: clinicId,
+          full_name: form.patient_name.trim(),
+          phone: form.patient_phone.replace(/\D/g, "") || null,
+          status: "lead",
+        })
+        .select("id")
+        .single();
+      if (newContact) contactId = newContact.id;
+    }
+
     const appt = await createAppointment(clinicId, {
       doctor_id:         form.doctor_id,
       patient_name:      form.patient_name.trim(),
       patient_phone:     form.patient_phone || undefined,
+      contact_id:        contactId,
       type_id:           form.type_id || undefined,
       type_name_snapshot: selectedType?.name,
       scheduled_date:    form.scheduled_date,
@@ -490,6 +902,13 @@ function NewAppointmentDialog({
 
     setSaving(false);
     if (!appt) { setError("Erro ao criar agendamento. Tente novamente."); return; }
+
+    // Google Calendar sync (logs result in dev)
+    fetch("/api/google-calendar/sync-appointment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ appointment_id: appt.id, action: "create" }),
+    }).then((r) => r.json()).catch((e) => console.error("[GCal sync create error]", e));
 
     const doctor = doctors.find((d) => d.id === form.doctor_id);
     onCreated({
@@ -535,21 +954,94 @@ function NewAppointmentDialog({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Patient name */}
-          <div>
-            <label className="text-xs text-z-dim mb-1.5 block">Nome do paciente *</label>
-            <input
-              type="text"
-              value={form.patient_name}
-              onChange={(e) => setForm((f) => ({ ...f, patient_name: e.target.value }))}
-              placeholder="Nome completo do paciente"
-              className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
-            />
+          {/* Contact search */}
+          <div className="relative">
+            <label className="text-xs text-z-dim mb-1.5 block">Paciente *</label>
+            {form.contact_id ? (
+              // Selected contact pill
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
+                style={{ background: "rgba(1,154,103,0.08)", border: "1px solid rgba(1,154,103,0.25)" }}>
+                <span className="text-sm flex-1" style={{ color: "var(--z-text)" }}>{form.patient_name}</span>
+                {form.patient_phone && (
+                  <span className="text-xs" style={{ color: "var(--z-text-dim)" }}>{form.patient_phone}</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, contact_id: "", patient_name: "", patient_phone: "" }))}
+                  className="text-z-dim hover:text-red-400 transition-colors"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  type="text"
+                  value={contactSearch}
+                  onChange={(e) => { setContactSearch(e.target.value); setContactSearchOpen(true); }}
+                  onFocus={() => setContactSearchOpen(true)}
+                  placeholder="Buscar por nome ou telefone..."
+                  className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
+                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+                />
+                {contactSearching && (
+                  <RefreshCw size={13} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-z-dim" />
+                )}
+                {/* Dropdown */}
+                {contactSearchOpen && (contactResults.length > 0 || contactSearch.trim().length >= 2) && (
+                  <div className="absolute z-20 w-full mt-1 rounded-xl overflow-hidden shadow-lg"
+                    style={{ background: "var(--surface-1)", border: "1px solid var(--border)" }}>
+                    {contactResults.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setForm((f) => ({ ...f, contact_id: c.id, patient_name: c.full_name, patient_phone: c.phone ?? "" }));
+                          setContactSearch("");
+                          setContactSearchOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all"
+                        style={{ color: "var(--z-text)" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(1,154,103,0.06)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold text-white shrink-0"
+                          style={{ background: "linear-gradient(135deg,#019A67,#01c47f)" }}>
+                          {c.full_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm truncate">{c.full_name}</p>
+                          {c.phone && <p className="text-xs" style={{ color: "var(--z-text-dim)" }}>{c.phone}</p>}
+                        </div>
+                      </button>
+                    ))}
+                    {/* Create new option */}
+                    {contactSearch.trim().length >= 2 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForm((f) => ({ ...f, patient_name: contactSearch.trim() }));
+                          setContactSearch("");
+                          setContactSearchOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 text-left text-sm border-t transition-all"
+                        style={{ color: "#019A67", borderColor: "var(--border)" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(1,154,103,0.06)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
+                        <Plus size={13} />
+                        Criar contato "{contactSearch.trim()}"
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
+          {/* Phone — only show when contact not selected from CRM */}
+          {!form.contact_id && (
           <div className="grid grid-cols-2 gap-3">
-            {/* Phone */}
             <div>
               <label className="text-xs text-z-dim mb-1.5 block">Telefone</label>
               <input
@@ -577,6 +1069,7 @@ function NewAppointmentDialog({
               </select>
             </div>
           </div>
+          )}
 
           {/* Doctor */}
           <div>
@@ -715,6 +1208,7 @@ export default function AgendaPage() {
   const [localStatusMap, setLocalStatusMap] = useState<Record<string, string>>({});
   const [availabilityDoctor, setAvailabilityDoctor] = useState<Doctor | null>(null);
   const [showTypesModal, setShowTypesModal] = useState(false);
+  const [showDoctorsModal, setShowDoctorsModal] = useState(false);
 
   const selectedDate = new Date(currentYear, currentMonth, selectedDay).toISOString().split("T")[0];
   const weekDates    = getWeekDates(currentYear, currentMonth, selectedDay);
@@ -776,6 +1270,14 @@ export default function AgendaPage() {
     if (selectedAppointment?.id === id) {
       setSelectedAppointment((prev) => prev ? { ...prev, status } : prev);
     }
+    // Fire-and-forget Google Calendar sync on cancellation
+    if (status === "cancelled") {
+      fetch("/api/google-calendar/sync-appointment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appointment_id: id, action: "delete" }),
+      }).catch(() => {});
+    }
   };
 
   const handleAppointmentCreated = (appt: Appointment) => {
@@ -785,8 +1287,8 @@ export default function AgendaPage() {
         clinic_id: clinicId, scheduled_date: appt.date, start_time: `${appt.time}:00`,
         end_time: `${appt.endTime}:00`, status: appt.status, source: "manual",
         type_name_snapshot: appt.type, notes: appt.notes ?? null, contact_id: null,
-        patient_phone: null, type_id: null, chat_session_id: null, created_at: new Date().toISOString(),
-        created_by: null, updated_at: new Date().toISOString(),
+        patient_phone: null, type_id: null, chat_session_id: null, google_event_id: null,
+        created_at: new Date().toISOString(), created_by: null, updated_at: new Date().toISOString(),
         doctor: doctors.find((d) => d.id === appt.doctorId)
           ? { id: appt.doctorId, name: appt.doctor, specialty: null, color: appt.doctorColor }
           : null,
@@ -994,6 +1496,15 @@ export default function AgendaPage() {
             >
               <Filter size={12} />
               Filtrar
+            </button>
+
+            <button
+              onClick={() => setShowDoctorsModal(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-z-dim transition-all"
+              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}
+            >
+              <UserPlus size={14} />
+              Médicos
             </button>
 
             <button
@@ -1229,6 +1740,15 @@ export default function AgendaPage() {
             types={appointmentTypes}
             onClose={() => setShowTypesModal(false)}
             onChanged={() => getAppointmentTypes(clinicId).then(setApptTypes)}
+          />
+        )}
+        {showDoctorsModal && (
+          <DoctorManagementModal
+            clinicId={clinicId}
+            doctors={doctors}
+            onClose={() => setShowDoctorsModal(false)}
+            onChanged={() => getDoctors(clinicId).then(setDoctors)}
+            onSchedule={(doc) => { setShowDoctorsModal(false); setAvailabilityDoctor(doc); }}
           />
         )}
       </AnimatePresence>

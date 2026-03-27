@@ -49,6 +49,46 @@ export async function getDoctors(clinicId: string): Promise<Doctor[]> {
   return data ?? [];
 }
 
+export async function createDoctor(
+  clinicId: string,
+  data: {
+    name: string;
+    specialty?: string;
+    crm_number?: string;
+    color?: string;
+    observations?: string;
+    consultation_fee?: number;
+    insurance_plans?: string[];
+  }
+): Promise<Doctor | null> {
+  const { data: doc } = await supabase
+    .from("doctors")
+    .insert({ clinic_id: clinicId, ...data })
+    .select()
+    .single();
+  return doc;
+}
+
+export async function updateDoctor(
+  id: string,
+  data: {
+    name?: string;
+    specialty?: string | null;
+    crm_number?: string | null;
+    color?: string;
+    observations?: string | null;
+    consultation_fee?: number | null;
+    insurance_plans?: string[];
+    active?: boolean;
+  }
+): Promise<void> {
+  await supabase.from("doctors").update(data).eq("id", id);
+}
+
+export async function deleteDoctor(id: string): Promise<void> {
+  await supabase.from("doctors").update({ active: false }).eq("id", id);
+}
+
 export async function getAppointmentTypes(clinicId: string): Promise<AppointmentType[]> {
   const { data } = await supabase
     .from("appointment_types")
@@ -122,7 +162,7 @@ export async function getAvailableSlots(
 
   const { data: template } = await supabase
     .from("availability_templates")
-    .select("start_time, end_time, slot_duration_min")
+    .select("start_time, end_time, slot_duration_min, time_periods")
     .eq("clinic_id", clinicId)
     .eq("doctor_id", doctorId)
     .eq("day_of_week", dayOfWeek)
@@ -140,19 +180,26 @@ export async function getAvailableSlots(
     .not("status", "eq", "cancelled");
 
   const bookedSet = new Set((booked ?? []).map((a) => a.start_time.slice(0, 5)));
-
-  const slots: string[] = [];
-  const [startH, startM] = template.start_time.split(":").map(Number);
-  const [endH, endM] = template.end_time.split(":").map(Number);
-  const startMins = startH * 60 + startM;
-  const endMins = endH * 60 + endM;
   const step = template.slot_duration_min ?? 30;
 
-  for (let m = startMins; m + step <= endMins; m += step) {
-    const hh = String(Math.floor(m / 60)).padStart(2, "0");
-    const mm = String(m % 60).padStart(2, "0");
-    const slot = `${hh}:${mm}`;
-    if (!bookedSet.has(slot)) slots.push(slot);
+  // Build list of periods — use time_periods if available, else single start/end
+  type Period = { start: string; end: string };
+  const periods: Period[] = Array.isArray(template.time_periods) && template.time_periods.length > 0
+    ? (template.time_periods as Period[])
+    : [{ start: template.start_time, end: template.end_time }];
+
+  const slots: string[] = [];
+  for (const period of periods) {
+    const [startH, startM] = period.start.split(":").map(Number);
+    const [endH, endM] = period.end.split(":").map(Number);
+    const startMins = startH * 60 + startM;
+    const endMins = endH * 60 + endM;
+    for (let m = startMins; m + step <= endMins; m += step) {
+      const hh = String(Math.floor(m / 60)).padStart(2, "0");
+      const mm = String(m % 60).padStart(2, "0");
+      const slot = `${hh}:${mm}`;
+      if (!bookedSet.has(slot)) slots.push(slot);
+    }
   }
 
   return slots;
@@ -179,8 +226,15 @@ export async function upsertAvailabilityTemplate(
   clinicId: string,
   doctorId: string,
   dayOfWeek: number,
-  params: { start_time: string; end_time: string; slot_duration_min?: number; active?: boolean }
+  params: {
+    start_time: string;
+    end_time: string;
+    slot_duration_min?: number;
+    active?: boolean;
+    time_periods?: { start: string; end: string }[];
+  }
 ): Promise<void> {
+  const periods = params.time_periods && params.time_periods.length > 1 ? params.time_periods : null;
   await supabase.from("availability_templates").upsert(
     {
       clinic_id: clinicId,
@@ -190,6 +244,7 @@ export async function upsertAvailabilityTemplate(
       end_time: params.end_time,
       slot_duration_min: params.slot_duration_min ?? 30,
       active: params.active ?? true,
+      time_periods: periods,
     },
     { onConflict: "doctor_id,day_of_week" }
   );
@@ -197,4 +252,11 @@ export async function upsertAvailabilityTemplate(
 
 export async function deleteAvailabilityTemplate(id: string): Promise<void> {
   await supabase.from("availability_templates").delete().eq("id", id);
+}
+
+export async function updateAppointmentGoogleEventId(
+  id: string,
+  googleEventId: string | null
+): Promise<void> {
+  await supabase.from("appointments").update({ google_event_id: googleEventId }).eq("id", id);
 }

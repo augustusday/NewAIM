@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase, DEMO_CLINIC_ID } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 interface ClinicContext {
   clinicId: string;
@@ -10,11 +10,11 @@ interface ClinicContext {
 
 /**
  * Returns the active clinic ID for the current user.
- * Reads `profiles.active_clinic_id` from Supabase.
- * Falls back to DEMO_CLINIC_ID if the profile has no clinic assigned yet.
+ * Reads `profiles.active_clinic_id`, falls back to first `clinic_members` entry.
+ * Never falls back to a demo/hardcoded ID.
  */
 export function useClinic(): ClinicContext {
-  const [clinicId, setClinicId] = useState(DEMO_CLINIC_ID);
+  const [clinicId, setClinicId] = useState("");
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {

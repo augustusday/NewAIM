@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -26,6 +27,12 @@ import {
   Edit2,
   Check,
   AlertCircle,
+  Save,
+  Loader2,
+  ShieldCheck,
+  Cake,
+  IdCard,
+  Banknote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClinic } from "@/hooks/use-clinic";
@@ -98,9 +105,10 @@ function formatDatePT(iso: string): string {
 }
 
 function initials(name: string): string {
-  const parts = name.trim().split(" ").filter(Boolean);
+  const parts = (name ?? "").trim().split(" ").filter(Boolean);
+  if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return ((parts[0][0] ?? "") + (parts[parts.length - 1][0] ?? "")).toUpperCase() || "?";
 }
 
 function mapContact(c: DBContact): Contact {
@@ -256,12 +264,15 @@ function ContactPanel({
   contact,
   onClose,
   onStatusChange,
+  onContactUpdate,
 }: {
   clinicId: string;
   contact: Contact;
   onClose: () => void;
   onStatusChange: (id: string, status: string) => void;
+  onContactUpdate: (updated: DBContact) => void;
 }) {
+  const router = useRouter();
   const [tab, setTab] = useState<"info" | "appointments" | "notes">("info");
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -271,26 +282,47 @@ function ContactPanel({
   const [savingNote, setSavingNote] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(contact.status);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState({
+    full_name: contact.raw.full_name ?? "",
+    phone: contact.raw.phone ?? "",
+    email: contact.raw.email ?? "",
+    birth_date: contact.raw.birth_date ?? "",
+    gender: contact.raw.gender ?? "",
+    document: contact.raw.document ?? "",
+    insurance_type: contact.raw.insurance_type ?? "particular",
+    insurance_name: contact.raw.insurance_name ?? "",
+    insurance_value: contact.raw.insurance_value ?? "",
+    notes: contact.raw.notes ?? "",
+  });
   const noteRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setCurrentStatus(contact.status);
-  }, [contact.id, contact.status]);
+    setDraft({
+      full_name: contact.raw.full_name ?? "",
+      phone: contact.raw.phone ?? "",
+      email: contact.raw.email ?? "",
+      birth_date: contact.raw.birth_date ?? "",
+      gender: contact.raw.gender ?? "",
+      document: contact.raw.document ?? "",
+      insurance_type: contact.raw.insurance_type ?? "particular",
+      insurance_name: contact.raw.insurance_name ?? "",
+      insurance_value: contact.raw.insurance_value ?? "",
+      notes: contact.raw.notes ?? "",
+    });
+    setEditing(false);
+  }, [contact.id]);
 
   useEffect(() => {
     if (tab === "notes" && notes.length === 0) {
       setLoadingNotes(true);
-      getContactNotes(contact.id).then((data) => {
-        setNotes(data);
-        setLoadingNotes(false);
-      });
+      getContactNotes(contact.id).then((data) => { setNotes(data); setLoadingNotes(false); });
     }
     if (tab === "appointments" && appointments.length === 0) {
       setLoadingAppts(true);
-      getContactAppointments(clinicId, contact.id).then((data) => {
-        setAppointments(data);
-        setLoadingAppts(false);
-      });
+      getContactAppointments(clinicId, contact.id).then((data) => { setAppointments(data); setLoadingAppts(false); });
     }
   }, [tab, contact.id]);
 
@@ -299,10 +331,7 @@ function ContactPanel({
     setSavingNote(true);
     const note = await addContactNote(clinicId, contact.id, noteText.trim());
     setSavingNote(false);
-    if (note) {
-      setNotes((prev) => [note, ...prev]);
-      setNoteText("");
-    }
+    if (note) { setNotes((prev) => [note, ...prev]); setNoteText(""); }
   };
 
   const handleStatusChange = async (newStatus: string) => {
@@ -314,7 +343,28 @@ function ContactPanel({
     onStatusChange(contact.id, newStatus);
   };
 
-  const tm = statusTagMap[currentStatus] ?? { label: currentStatus, color: "#019A67" };
+  const handleSave = async () => {
+    setSaving(true);
+    const updated = await updateContact(contact.id, {
+      full_name: draft.full_name.trim() || contact.raw.full_name,
+      phone: draft.phone.trim() || undefined,
+      email: draft.email.trim() || undefined,
+      birth_date: draft.birth_date || undefined,
+      gender: draft.gender || undefined,
+      document: draft.document.trim() || undefined,
+      insurance_type: draft.insurance_type || undefined,
+      insurance_name: draft.insurance_name.trim() || undefined,
+      insurance_value: draft.insurance_value.trim() || undefined,
+      notes: draft.notes.trim() || undefined,
+    });
+    setSaving(false);
+    if (updated) { onContactUpdate(updated); setEditing(false); }
+  };
+
+  const d = (k: keyof typeof draft) => (v: string) => setDraft((p) => ({ ...p, [k]: v }));
+  const inputCls = "w-full px-2.5 py-1.5 rounded-lg text-xs text-z-text placeholder:text-z-faint outline-none focus:ring-1 focus:ring-[#019A67]";
+  const inputStyle = { background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" };
+  const labelCls = "block text-[10px] text-z-faint mb-1";
 
   return (
     <motion.div
@@ -340,63 +390,158 @@ function ContactPanel({
               <p className="text-xs text-z-dim mt-0.5">{contact.phone || "Sem telefone"}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)] transition-all shrink-0"
-          >
-            <X size={14} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => { if (editing) { setEditing(false); } else { setEditing(true); setTab("info"); } }}
+              className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)] transition-all"
+              title={editing ? "Cancelar edição" : "Editar contato"}
+            >
+              {editing ? <X size={13} /> : <Edit2 size={13} />}
+            </button>
+            <button onClick={onClose} className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)] transition-all">
+              <X size={14} />
+            </button>
+          </div>
         </div>
 
         {/* Status selector */}
-        <div className="flex gap-1 flex-wrap">
-          {statusOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => handleStatusChange(opt.value)}
-              disabled={changingStatus}
-              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg font-medium transition-all"
-              style={{
-                background: currentStatus === opt.value ? `${opt.color}20` : "var(--input)",
-                color: currentStatus === opt.value ? opt.color : "var(--z-text-dim)",
-                border: currentStatus === opt.value ? `1px solid ${opt.color}40` : "1px solid transparent",
-              }}
-            >
-              {currentStatus === opt.value && <Check size={9} />}
-              {opt.label}
-            </button>
-          ))}
-        </div>
+        {!editing && (
+          <div className="flex gap-1 flex-wrap">
+            {statusOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => handleStatusChange(opt.value)}
+                disabled={changingStatus}
+                className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg font-medium transition-all"
+                style={{
+                  background: currentStatus === opt.value ? `${opt.color}20` : "var(--input)",
+                  color: currentStatus === opt.value ? opt.color : "var(--z-text-dim)",
+                  border: currentStatus === opt.value ? `1px solid ${opt.color}40` : "1px solid transparent",
+                }}
+              >
+                {currentStatus === opt.value && <Check size={9} />}
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
-      <div
-        className="flex border-b border-border shrink-0"
-        style={{ background: "var(--surface-2)" }}
-      >
-        {([
-          { id: "info", label: "Info", icon: User },
-          { id: "appointments", label: "Consultas", icon: Calendar },
-          { id: "notes", label: "Notas", icon: FileText },
-        ] as const).map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 py-3 text-xs transition-all",
-              tab === id ? "text-[#01c47f] border-b-2 border-[#019A67]" : "text-z-dim"
-            )}
-          >
-            <Icon size={12} />
-            {label}
-          </button>
-        ))}
-      </div>
+      {!editing && (
+        <div className="flex border-b border-border shrink-0" style={{ background: "var(--surface-2)" }}>
+          {([
+            { id: "info", label: "Info", icon: User },
+            { id: "appointments", label: "Consultas", icon: Calendar },
+            { id: "notes", label: "Notas", icon: FileText },
+          ] as const).map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={cn("flex-1 flex items-center justify-center gap-1.5 py-3 text-xs transition-all",
+                tab === id ? "text-[#01c47f] border-b-2 border-[#019A67]" : "text-z-dim")}
+            >
+              <Icon size={12} />
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
-          {tab === "info" && (
+
+          {/* ── Edit mode ──────────────────────────────────── */}
+          {editing && (
+            <motion.div key="edit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="p-5 space-y-4">
+              <p className="text-xs font-medium text-z-dim">Editar contato</p>
+
+              <div>
+                <label className={labelCls}>Nome completo</label>
+                <input className={inputCls} style={inputStyle} value={draft.full_name} onChange={(e) => d("full_name")(e.target.value)} placeholder="Nome completo" />
+              </div>
+              <div>
+                <label className={labelCls}>Telefone</label>
+                <input className={inputCls} style={inputStyle} value={draft.phone} onChange={(e) => d("phone")(e.target.value)} placeholder="(11) 99999-9999" />
+              </div>
+              <div>
+                <label className={labelCls}>Email</label>
+                <input type="email" className={inputCls} style={inputStyle} value={draft.email} onChange={(e) => d("email")(e.target.value)} placeholder="email@exemplo.com" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={labelCls}>Data de nascimento</label>
+                  <input type="date" className={inputCls} style={inputStyle} value={draft.birth_date} onChange={(e) => d("birth_date")(e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelCls}>Gênero</label>
+                  <select className={inputCls} style={inputStyle} value={draft.gender} onChange={(e) => d("gender")(e.target.value)}>
+                    <option value="">—</option>
+                    <option value="masculino">Masculino</option>
+                    <option value="feminino">Feminino</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>CPF / Documento</label>
+                <input className={inputCls} style={inputStyle} value={draft.document} onChange={(e) => d("document")(e.target.value)} placeholder="000.000.000-00" />
+              </div>
+
+              {/* Insurance */}
+              <div>
+                <label className={labelCls}>Tipo de atendimento</label>
+                <div className="flex gap-1">
+                  {(["particular", "convenio"] as const).map((t) => (
+                    <button key={t} type="button"
+                      onClick={() => d("insurance_type")(t)}
+                      className="flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all"
+                      style={{
+                        background: draft.insurance_type === t ? "rgba(1,154,103,0.15)" : "var(--input)",
+                        color: draft.insurance_type === t ? "#019A67" : "var(--z-text-dim)",
+                        border: draft.insurance_type === t ? "1px solid rgba(1,154,103,0.3)" : "1px solid transparent",
+                      }}>
+                      {t === "particular" ? "Particular" : "Convênio"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {draft.insurance_type === "convenio" && (
+                <div>
+                  <label className={labelCls}>Nome do convênio</label>
+                  <input className={inputCls} style={inputStyle} value={draft.insurance_name} onChange={(e) => d("insurance_name")(e.target.value)} placeholder="Unimed, Bradesco..." />
+                </div>
+              )}
+              <div>
+                <label className={labelCls}>Valor / Cobertura</label>
+                <input className={inputCls} style={inputStyle} value={draft.insurance_value} onChange={(e) => d("insurance_value")(e.target.value)} placeholder="R$ 150,00" />
+              </div>
+
+              <div>
+                <label className={labelCls}>Observações internas</label>
+                <textarea className={cn(inputCls, "resize-none")} style={inputStyle} rows={3} value={draft.notes} onChange={(e) => d("notes")(e.target.value)} placeholder="Informações extras..." />
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setEditing(false)}
+                  className="flex-1 py-2 rounded-xl text-xs text-z-dim transition-all"
+                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+                  Cancelar
+                </button>
+                <button onClick={handleSave} disabled={saving}
+                  className="flex-1 py-2 rounded-xl text-xs text-white font-medium flex items-center justify-center gap-1.5 disabled:opacity-60"
+                  style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+                  {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                  Salvar
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── Info tab ───────────────────────────────────── */}
+          {!editing && tab === "info" && (
             <motion.div
               key="info"
               initial={{ opacity: 0 }}
@@ -427,6 +572,54 @@ function ContactPanel({
                     </div>
                   </div>
                 )}
+                {contact.raw.birth_date && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(1,154,103,0.1)" }}>
+                      <Cake size={12} style={{ color: "#019A67" }} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-z-faint">Nascimento</p>
+                      <p className="text-xs text-z-text">{new Date(contact.raw.birth_date + "T12:00:00").toLocaleDateString("pt-BR")}</p>
+                    </div>
+                  </div>
+                )}
+                {contact.raw.document && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(1,154,103,0.1)" }}>
+                      <IdCard size={12} style={{ color: "#019A67" }} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-z-faint">CPF / Documento</p>
+                      <p className="text-xs text-z-text">{contact.raw.document}</p>
+                    </div>
+                  </div>
+                )}
+                {(contact.raw.insurance_type || contact.raw.insurance_name) && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(1,154,103,0.1)" }}>
+                      <ShieldCheck size={12} style={{ color: "#019A67" }} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-z-faint">Atendimento</p>
+                      <p className="text-xs text-z-text">
+                        {contact.raw.insurance_type === "convenio"
+                          ? `Convênio${contact.raw.insurance_name ? ` — ${contact.raw.insurance_name}` : ""}`
+                          : "Particular"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {contact.raw.insurance_value && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(1,154,103,0.1)" }}>
+                      <Banknote size={12} style={{ color: "#019A67" }} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-z-faint">Valor</p>
+                      <p className="text-xs text-z-text">{contact.raw.insurance_value}</p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3">
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(1,154,103,0.1)" }}>
                     <Clock size={12} style={{ color: "#019A67" }} />
@@ -449,10 +642,7 @@ function ContactPanel({
                   </div>
                 )}
                 {contact.raw.notes && (
-                  <div
-                    className="p-3 rounded-xl text-xs text-z-dim"
-                    style={{ background: "rgba(1,154,103,0.04)", border: "1px solid rgba(1,154,103,0.1)" }}
-                  >
+                  <div className="p-3 rounded-xl text-xs text-z-dim" style={{ background: "rgba(1,154,103,0.04)", border: "1px solid rgba(1,154,103,0.1)" }}>
                     {contact.raw.notes}
                   </div>
                 )}
@@ -460,14 +650,18 @@ function ContactPanel({
 
               <div className="pt-2 space-y-2">
                 <button
-                  className="w-full py-2.5 rounded-xl text-sm text-white font-medium flex items-center justify-center gap-2"
+                  onClick={() => contact.raw.wa_chat_id && router.push(`/dashboard/chats?open=${contact.raw.wa_chat_id}`)}
+                  disabled={!contact.raw.wa_chat_id}
+                  className="w-full py-2.5 rounded-xl text-sm text-white font-medium flex items-center justify-center gap-2 disabled:opacity-40"
                   style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}
+                  title={!contact.raw.wa_chat_id ? "Contato sem WhatsApp vinculado" : undefined}
                 >
                   <MessageCircle size={14} />
                   Abrir chat
                 </button>
                 <button
-                  className="w-full py-2.5 rounded-xl text-xs text-z-dim flex items-center justify-center gap-2 transition-all"
+                  onClick={() => router.push("/dashboard/agenda")}
+                  className="w-full py-2.5 rounded-xl text-xs text-z-dim flex items-center justify-center gap-2 transition-all hover:bg-[rgba(1,154,103,0.05)]"
                   style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}
                 >
                   <Calendar size={13} />
@@ -638,6 +832,12 @@ export default function CRMPage() {
         return { ...prev, status: newStatus, tag: tm.label, tagColor: tm.color, raw: { ...prev.raw, status: newStatus } };
       });
     }
+  };
+
+  const handleContactUpdate = (updated: DBContact) => {
+    const mapped = mapContact(updated);
+    setContacts((prev) => prev.map((c) => (c.id === updated.id ? mapped : c)));
+    setSelectedContact(mapped);
   };
 
   const kanbanColumns = [
@@ -990,6 +1190,7 @@ export default function CRMPage() {
               contact={selectedContact}
               onClose={() => setSelectedContact(null)}
               onStatusChange={handleStatusChange}
+              onContactUpdate={handleContactUpdate}
             />
           )}
         </AnimatePresence>

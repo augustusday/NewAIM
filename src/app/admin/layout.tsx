@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import {
   LayoutDashboard,
   Building2,
@@ -11,7 +12,6 @@ import {
   MessageSquare,
   Settings,
   LogOut,
-  Stethoscope,
   ChevronRight,
   Shield,
   Bot,
@@ -53,18 +53,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-5 py-5 border-b border-border">
-          <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 12px rgba(1,154,103,0.4)" }}
-          >
-            <Stethoscope size={16} className="text-white" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-z-text" style={{ letterSpacing: "-0.02em" }}>Zelus</p>
-            <div className="flex items-center gap-1 mt-0.5">
-              <Shield size={9} style={{ color: "#019A67" }} />
-              <span className="text-[9px] uppercase tracking-widest" style={{ color: "#019A67" }}>Admin</span>
-            </div>
+          <Image src="/logo-zelus.png" alt="Zelus" width={90} height={28} className="object-contain" />
+          <div className="flex items-center gap-1">
+            <Shield size={9} style={{ color: "#019A67" }} />
+            <span className="text-[9px] uppercase tracking-widest" style={{ color: "#019A67" }}>Admin</span>
           </div>
         </div>
 

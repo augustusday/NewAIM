@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Shield, ShieldOff, Building2, Plus, X, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Search, Shield, ShieldOff, Building2, Plus, X, AlertCircle, Eye, EyeOff, Mail } from "lucide-react";
 import { getAllUsers, toggleSuperAdmin, getAllClinics, type UserWithClinics, type ClinicWithStats } from "@/lib/db/admin";
 
 function initials(name: string) {
@@ -207,11 +207,19 @@ export default function UsuariosPage() {
             </span>
           )}
         </div>
-        <p className="text-[10px] text-z-faint">{user.email ?? user.id.slice(0, 12) + "…"}</p>
+        <p className="text-xs text-z-dim flex items-center gap-1 mt-0.5">
+          <Mail size={10} className="shrink-0" />
+          {user.email ?? <span className="text-z-faint italic">sem email</span>}
+        </p>
       </div>
 
       <div className="flex-1 min-w-0 hidden md:flex items-center gap-1 flex-wrap">
-        {user.clinics.length === 0 ? (
+        {user.is_super_admin ? (
+          <span className="text-[10px] px-2 py-0.5 rounded-lg flex items-center gap-1"
+            style={{ background: "rgba(245,158,11,0.08)", color: "#f59e0b" }}>
+            <Building2 size={8} /> Acesso a todas as clínicas
+          </span>
+        ) : user.clinics.length === 0 ? (
           <span className="text-xs text-z-faint">Sem clínica</span>
         ) : user.clinics.map((c) => (
           <span key={c.clinic_id} className="text-[10px] px-2 py-0.5 rounded-lg flex items-center gap-1"

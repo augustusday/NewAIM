@@ -1,12 +1,8 @@
 /**
  * UAZAPI client — all requests go through /api/uazapi to avoid CORS issues.
- * Pass { serverUrl, instanceToken } for per-request config.
+ * Credentials are resolved server-side from the user's active clinic.
+ * Pass clinicId only for admin operations on other clinics.
  */
-
-export interface UazapiConfig {
-  serverUrl: string;
-  instanceToken: string;
-}
 
 export interface UazapiInstance {
   id: string;
@@ -78,20 +74,19 @@ export interface UazapiMessage {
 }
 
 async function request<T>(
-  config: UazapiConfig,
   method: "GET" | "POST" | "DELETE",
   path: string,
-  body?: unknown
+  body?: unknown,
+  clinicId?: string
 ): Promise<T> {
   const res = await fetch("/api/uazapi", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      serverUrl: config.serverUrl,
-      instanceToken: config.instanceToken,
       method,
       path,
       body,
+      ...(clinicId && { clinicId }),
     }),
   });
 
@@ -106,35 +101,35 @@ async function request<T>(
 // ── Instance ──────────────────────────────────────────────
 export const uazapi = {
   /** Get instance connection status + QR code if connecting */
-  getStatus(config: UazapiConfig): Promise<UazapiInstanceStatus> {
-    return request(config, "GET", "/instance/status");
+  getStatus(clinicId?: string): Promise<UazapiInstanceStatus> {
+    return request("GET", "/instance/status", undefined, clinicId);
   },
 
   /** Start connection — returns QR code (no phone) or pairing code (with phone) */
-  connect(config: UazapiConfig, phone?: string): Promise<{
+  connect(phone?: string, clinicId?: string): Promise<{
     connected: boolean;
     loggedIn: boolean;
     instance: UazapiInstance;
   }> {
-    return request(config, "POST", "/instance/connect", phone ? { phone } : undefined);
+    return request("POST", "/instance/connect", phone ? { phone } : undefined, clinicId);
   },
 
   /** Disconnect instance */
-  disconnect(config: UazapiConfig): Promise<{ response: string }> {
-    return request(config, "POST", "/instance/disconnect");
+  disconnect(clinicId?: string): Promise<{ response: string }> {
+    return request("POST", "/instance/disconnect", undefined, clinicId);
   },
 
   // ── Chats ──────────────────────────────────────────────
   /** Find chats with optional filters */
   findChats(
-    config: UazapiConfig,
     opts?: {
       limit?: number;
       offset?: number;
       sort?: string;
       wa_isGroup?: boolean;
       name?: string;
-    }
+    },
+    clinicId?: string
   ): Promise<{
     chats: UazapiChat[];
     pagination: {
@@ -144,65 +139,65 @@ export const uazapi = {
       hasNextPage: boolean;
     };
   }> {
-    return request(config, "POST", "/chat/find", {
+    return request("POST", "/chat/find", {
       limit: opts?.limit ?? 30,
       offset: opts?.offset ?? 0,
       sort: opts?.sort ?? "-wa_lastMsgTimestamp",
       ...(opts?.wa_isGroup !== undefined && { wa_isGroup: opts.wa_isGroup }),
       ...(opts?.name && { name: `~${opts.name}` }),
-    });
+    }, clinicId);
   },
 
   /** Find messages in a chat */
   findMessages(
-    config: UazapiConfig,
     chatid: string,
-    opts?: { limit?: number; offset?: number }
+    opts?: { limit?: number; offset?: number },
+    clinicId?: string
   ): Promise<{
     messages: UazapiMessage[];
     returnedMessages: number;
     hasMore: boolean;
   }> {
-    return request(config, "POST", "/message/find", {
+    return request("POST", "/message/find", {
       chatid,
       limit: opts?.limit ?? 50,
       offset: opts?.offset ?? 0,
-    });
+    }, clinicId);
   },
 
   /** Send a text message */
   sendText(
-    config: UazapiConfig,
     number: string,
     text: string,
-    opts?: { replyid?: string; readchat?: boolean }
+    opts?: { replyid?: string; readchat?: boolean },
+    clinicId?: string
   ): Promise<{ messageid: string }> {
-    return request(config, "POST", "/send/text", {
+    return request("POST", "/send/text", {
       number,
       text,
       readchat: opts?.readchat ?? true,
       ...(opts?.replyid && { replyid: opts.replyid }),
-    });
+    }, clinicId);
   },
 
   /** Mark messages as read */
   markRead(
-    config: UazapiConfig,
-    chatid: string
+    chatid: string,
+    clinicId?: string
   ): Promise<unknown> {
-    return request(config, "POST", "/chat/read", { id: chatid });
+    return request("POST", "/chat/read", { id: chatid }, clinicId);
   },
 
   /** Edit lead info on a chat */
   editLead(
-    config: UazapiConfig,
     id: string,
     data: Partial<Pick<UazapiChat,
       | "lead_name" | "lead_fullName" | "lead_email"
       | "lead_status" | "lead_tags" | "lead_notes"
       | "lead_isTicketOpen" | "lead_assignedAttendant_id"
-    >>
+    >>,
+    clinicId?: string
   ): Promise<unknown> {
-    return request(config, "POST", "/chat/editLead", { id, ...data });
+    return request("POST", "/chat/editLead", { id, ...data }, clinicId);
   },
 };

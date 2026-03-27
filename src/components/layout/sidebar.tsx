@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -11,8 +12,8 @@ import {
   Settings,
   Bell,
   ChevronRight,
-  Stethoscope,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -32,7 +33,6 @@ const navItems = [
     icon: MessageCircle,
     label: "Chats",
     description: "WhatsApp",
-    badge: 12,
   },
   {
     href: "/dashboard/crm",
@@ -88,28 +88,30 @@ export function Sidebar() {
         className="flex items-center h-14 px-3.5 shrink-0"
         style={{ borderBottom: "1px solid var(--sidebar-border)" }}
       >
-        <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <div
-            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
-            style={{
-              background: "linear-gradient(135deg, #019A67 0%, #01c47f 100%)",
-              boxShadow: "0 0 12px rgba(1,154,103,0.35)",
-            }}
-          >
-            <Stethoscope size={14} className="text-white" />
-          </div>
-          <AnimatePresence>
-            {!collapsed && (
-              <motion.span
+        <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+          <AnimatePresence mode="wait">
+            {collapsed ? (
+              <motion.div
+                key="icon"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="shrink-0"
+              >
+                <Image src="/icon.png" alt="Zelus" width={28} height={28} className="rounded-xl object-cover" />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="logo"
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -8 }}
                 transition={{ duration: 0.2 }}
-                className="text-base font-semibold truncate"
-                style={{ color: "var(--sidebar-text)", letterSpacing: "0.02em" }}
+                className="shrink-0"
               >
-                zelus
-              </motion.span>
+                <Image src="/logo-zelus.png" alt="Zelus" width={96} height={30} className="object-contain" />
+              </motion.div>
             )}
           </AnimatePresence>
         </div>
@@ -125,6 +127,29 @@ export function Sidebar() {
         </motion.button>
       </div>
 
+      {/* Super admin banner */}
+      <AnimatePresence>
+        {!collapsed && user?.is_super_admin && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mx-3 mt-3 overflow-hidden"
+          >
+            <a
+              href="/admin"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl transition-opacity hover:opacity-80"
+              style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)" }}
+            >
+              <Shield size={11} style={{ color: "#f59e0b", flexShrink: 0 }} />
+              <span className="text-[10px] font-medium truncate" style={{ color: "#f59e0b" }}>
+                Voltar ao Admin
+              </span>
+            </a>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Clinic pill */}
       <AnimatePresence>
         {!collapsed && (
@@ -132,7 +157,7 @@ export function Sidebar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mx-3 mt-3 overflow-hidden"
+            className="mx-3 mt-2 overflow-hidden"
           >
             <div
               className="px-3 py-2 rounded-xl"
@@ -203,7 +228,7 @@ export function Sidebar() {
                       <span className="text-sm font-medium truncate">
                         {item.label}
                       </span>
-                      {item.badge && !active && (
+                      {"badge" in item && !active && (
                         <span
                           className="text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0"
                           style={{
@@ -211,7 +236,7 @@ export function Sidebar() {
                             color: "#019A67",
                           }}
                         >
-                          {item.badge}
+                          {(item as { badge?: number }).badge}
                         </span>
                       )}
                     </motion.div>

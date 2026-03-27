@@ -56,6 +56,116 @@ export type Database = {
           },
         ]
       }
+      ai_execution_steps: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          execution_id: string
+          id: string
+          step_index: number
+          tool_args: Json | null
+          tool_name: string | null
+          tool_result: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          execution_id: string
+          id?: string
+          step_index: number
+          tool_args?: Json | null
+          tool_name?: string | null
+          tool_result?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          execution_id?: string
+          id?: string
+          step_index?: number
+          tool_args?: Json | null
+          tool_name?: string | null
+          tool_result?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_execution_steps_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "ai_executions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_executions: {
+        Row: {
+          clinic_id: string
+          contact_name: string | null
+          duration_ms: number | null
+          error_message: string | null
+          final_response: string | null
+          finished_at: string | null
+          id: string
+          input_preview: string | null
+          iterations: number
+          phone: string | null
+          session_id: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          clinic_id: string
+          contact_name?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          final_response?: string | null
+          finished_at?: string | null
+          id?: string
+          input_preview?: string | null
+          iterations?: number
+          phone?: string | null
+          session_id: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          clinic_id?: string
+          contact_name?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          final_response?: string | null
+          finished_at?: string | null
+          id?: string
+          input_preview?: string | null
+          iterations?: number
+          phone?: string | null
+          session_id?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_executions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_executions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_stats"
+            referencedColumns: ["clinic_id"]
+          },
+        ]
+      }
       appointment_types: {
         Row: {
           active: boolean
@@ -110,6 +220,7 @@ export type Database = {
           created_by: string | null
           doctor_id: string
           end_time: string
+          google_event_id: string | null
           id: string
           notes: string | null
           patient_name: string
@@ -130,6 +241,7 @@ export type Database = {
           created_by?: string | null
           doctor_id: string
           end_time: string
+          google_event_id?: string | null
           id?: string
           notes?: string | null
           patient_name: string
@@ -150,6 +262,7 @@ export type Database = {
           created_by?: string | null
           doctor_id?: string
           end_time?: string
+          google_event_id?: string | null
           id?: string
           notes?: string | null
           patient_name?: string
@@ -276,6 +389,7 @@ export type Database = {
           id: string
           slot_duration_min: number
           start_time: string
+          time_periods: Json | null
         }
         Insert: {
           active?: boolean
@@ -286,6 +400,7 @@ export type Database = {
           id?: string
           slot_duration_min?: number
           start_time: string
+          time_periods?: Json | null
         }
         Update: {
           active?: boolean
@@ -296,6 +411,7 @@ export type Database = {
           id?: string
           slot_duration_min?: number
           start_time?: string
+          time_periods?: Json | null
         }
         Relationships: [
           {
@@ -605,6 +721,7 @@ export type Database = {
       clinics: {
         Row: {
           active: boolean
+          address: string | null
           created_at: string
           id: string
           logo_url: string | null
@@ -617,6 +734,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          address?: string | null
           created_at?: string
           id?: string
           logo_url?: string | null
@@ -629,6 +747,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          address?: string | null
           created_at?: string
           id?: string
           logo_url?: string | null
@@ -710,6 +829,9 @@ export type Database = {
           full_name: string
           gender: string | null
           id: string
+          insurance_name: string | null
+          insurance_type: string | null
+          insurance_value: string | null
           notes: string | null
           phone: string | null
           status: string
@@ -730,6 +852,9 @@ export type Database = {
           full_name: string
           gender?: string | null
           id?: string
+          insurance_name?: string | null
+          insurance_type?: string | null
+          insurance_value?: string | null
           notes?: string | null
           phone?: string | null
           status?: string
@@ -750,6 +875,9 @@ export type Database = {
           full_name?: string
           gender?: string | null
           id?: string
+          insurance_name?: string | null
+          insurance_type?: string | null
+          insurance_value?: string | null
           notes?: string | null
           phone?: string | null
           status?: string
@@ -794,10 +922,13 @@ export type Database = {
           active: boolean
           clinic_id: string
           color: string
+          consultation_fee: number | null
           created_at: string
           crm_number: string | null
           id: string
+          insurance_plans: string[]
           name: string
+          observations: string | null
           specialty: string | null
           updated_at: string
           user_id: string | null
@@ -806,10 +937,13 @@ export type Database = {
           active?: boolean
           clinic_id: string
           color?: string
+          consultation_fee?: number | null
           created_at?: string
           crm_number?: string | null
           id?: string
+          insurance_plans?: string[]
           name: string
+          observations?: string | null
           specialty?: string | null
           updated_at?: string
           user_id?: string | null
@@ -818,10 +952,13 @@ export type Database = {
           active?: boolean
           clinic_id?: string
           color?: string
+          consultation_fee?: number | null
           created_at?: string
           crm_number?: string | null
           id?: string
+          insurance_plans?: string[]
           name?: string
+          observations?: string | null
           specialty?: string | null
           updated_at?: string
           user_id?: string | null
@@ -1480,18 +1617,31 @@ export const Constants = {
   },
 } as const
 
-// ── Convenience aliases ───────────────────────────────────────────────────────
-export type Appointment           = Tables<"appointments">
-export type AppointmentType       = Tables<"appointment_types">
-export type AvailabilityTemplate  = Tables<"availability_templates">
-export type Doctor                = Tables<"doctors">
-export type Contact               = Tables<"contacts">
-export type ContactNote           = Tables<"contact_notes">
-export type ChatSession           = Tables<"chat_sessions">
-export type ClinicSettings        = Tables<"clinic_settings">
-export type AiConversationMessage = Tables<"ai_conversation_messages">
-export type DashboardStats        = Tables<"v_dashboard_stats">
-export type AppointmentsByDay     = Tables<"v_appointments_by_day">
-export type Pipeline              = Tables<"pipelines">
-export type PipelineStage         = Tables<"pipeline_stages">
-export type PipelineCard          = Tables<"pipeline_cards">
+// ── Convenience row type aliases ──────────────────────────────────────────────
+export type Doctor               = Tables<"doctors">
+export type AppointmentType      = Tables<"appointment_types">
+export type AvailabilityTemplate = Tables<"availability_templates">
+export type Appointment          = Tables<"appointments">
+export type Contact              = Tables<"contacts">
+export type ContactNote          = Tables<"contact_notes">
+export type ChatSession          = Tables<"chat_sessions">
+
+export type DoctorGoogleToken = {
+  id: string
+  doctor_id: string
+  clinic_id: string
+  access_token: string
+  refresh_token: string
+  expiry_date: number
+  google_email: string | null
+  created_at: string
+  updated_at: string
+}
+export type Pipeline             = Tables<"pipelines">
+export type PipelineStage        = Tables<"pipeline_stages">
+export type PipelineCard         = Tables<"pipeline_cards">
+export type DashboardStats       = Tables<"v_dashboard_stats">
+export type AppointmentsByDay    = Tables<"v_appointments_by_day">
+
+export type AiExecution      = Tables<"ai_executions">
+export type AiExecutionStep  = Tables<"ai_execution_steps">

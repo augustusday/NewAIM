@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
   Plus, Search, Building2, Users, Activity, Wifi, WifiOff,
-  MoreHorizontal, Edit2, PowerOff, Power, X, AlertCircle, Settings,
+  MoreHorizontal, Edit2, PowerOff, Power, X, AlertCircle, Settings, LogIn, Loader2,
 } from "lucide-react";
 import {
   getAllClinics, createClinic, updateClinic, type ClinicWithStats,
@@ -111,15 +111,16 @@ function NewClinicDialog({ onClose, onCreated }: { onClose: () => void; onCreate
 }
 
 function EditClinicDialog({ clinic, onClose, onSaved }: { clinic: ClinicWithStats; onClose: () => void; onSaved: (id: string, data: Partial<ClinicWithStats>) => void }) {
-  const [form, setForm] = useState({ name: clinic.name, slug: clinic.slug, timezone: clinic.timezone });
+  const [form, setForm] = useState({ name: clinic.name, slug: clinic.slug, timezone: clinic.timezone, address: clinic.address ?? "" });
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await updateClinic(clinic.id, form);
+    const payload = { ...form, address: form.address.trim() || null };
+    await updateClinic(clinic.id, payload);
     setSaving(false);
-    onSaved(clinic.id, form);
+    onSaved(clinic.id, payload);
     onClose();
   };
 
@@ -136,6 +137,12 @@ function EditClinicDialog({ clinic, onClose, onSaved }: { clinic: ClinicWithStat
           <div>
             <label className="text-xs text-z-dim block mb-1.5">Nome</label>
             <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+          </div>
+          <div>
+            <label className="text-xs text-z-dim block mb-1.5">Endereço</label>
+            <input type="text" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+              placeholder="Rua, número, bairro, cidade — UF"
               className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
           </div>
           <div>
@@ -160,12 +167,28 @@ function EditClinicDialog({ clinic, onClose, onSaved }: { clinic: ClinicWithStat
 
 export default function ClinicasPage() {
   const router = useRouter();
-  const [clinics, setClinics]       = useState<ClinicWithStats[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [search, setSearch]         = useState("");
-  const [showNew, setShowNew]       = useState(false);
-  const [editClinic, setEditClinic] = useState<ClinicWithStats | null>(null);
-  const [openMenu, setOpenMenu]     = useState<string | null>(null);
+  const [clinics, setClinics]         = useState<ClinicWithStats[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [search, setSearch]           = useState("");
+  const [showNew, setShowNew]         = useState(false);
+  const [editClinic, setEditClinic]   = useState<ClinicWithStats | null>(null);
+  const [openMenu, setOpenMenu]       = useState<string | null>(null);
+  const [accessingId, setAccessingId] = useState<string | null>(null);
+
+  const handleAccessClinic = async (clinic: ClinicWithStats) => {
+    setAccessingId(clinic.id);
+    setOpenMenu(null);
+    try {
+      await fetch("/api/admin/switch-clinic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clinicId: clinic.id }),
+      });
+      router.push("/dashboard");
+    } finally {
+      setAccessingId(null);
+    }
+  };
 
   useEffect(() => {
     getAllClinics().then((data) => { setClinics(data); setLoading(false); });
@@ -279,6 +302,14 @@ export default function ClinicasPage() {
                         <motion.div initial={{ opacity: 0, y: 4, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4, scale: 0.96 }}
                           transition={{ duration: 0.12 }} className="absolute right-0 top-full mt-1 rounded-xl shadow-2xl z-20 py-1 min-w-36"
                           style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.15)" }}>
+                          <button onClick={() => handleAccessClinic(clinic)}
+                            disabled={!!accessingId}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-all disabled:opacity-50"
+                            style={{ color: "#019A67" }}>
+                            {accessingId === clinic.id ? <Loader2 size={11} className="animate-spin" /> : <LogIn size={11} />}
+                            Acessar como clínica
+                          </button>
+                          <div className="my-1 border-t" style={{ borderColor: "var(--border)" }} />
                           <button onClick={() => router.push(`/admin/clinicas/${clinic.id}`)}
                             className="w-full flex items-center gap-2 px-3 py-2 text-xs text-z-dim hover:bg-[rgba(1,154,103,0.06)] transition-all">
                             <Settings size={11} /> Gerenciar

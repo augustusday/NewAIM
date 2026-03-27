@@ -7,7 +7,8 @@ import {
   ArrowLeft, Plus, Edit2, X, AlertCircle,
   UserMinus, Clock, Calendar, Stethoscope, Users, ChevronRight,
   ToggleLeft, ToggleRight, RefreshCw, Wifi, WifiOff, Bot,
-  Save, Eye, EyeOff, Settings2,
+  Save, Eye, EyeOff, Mail, ClipboardList, Zap, Wrench, CheckCircle2, XCircle,
+  Phone, ChevronLeft,
 } from "lucide-react";
 import {
   getClinicById,
@@ -28,7 +29,9 @@ import {
   updateAppointmentType,
   getAllUsers,
   addUserToClinic,
+  type UserWithClinics,
 } from "@/lib/db/admin";
+import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
 
 type Clinic = Database["public"]["Tables"]["clinics"]["Row"];
@@ -154,14 +157,19 @@ function DoctorModal({ doctor, clinicId, onClose, onSaved }: {
 }
 
 // ─── Schedule Modal ───────────────────────────────────────────────────────────
+type TimePeriod = { start: string; end: string };
+type DayEntry = { enabled: boolean; periods: TimePeriod[]; slot: number; id?: string };
+
 function ScheduleModal({ doctor, clinicId, templates, onClose, onSaved }: {
   doctor: Doctor; clinicId: string; templates: AvailTemplate[];
   onClose: () => void; onSaved: (templates: AvailTemplate[]) => void;
 }) {
-  type DayEntry = { enabled: boolean; start: string; end: string; slot: number; id?: string };
   const initDays = (): DayEntry[] => DAYS.map((_, dow) => {
     const t = templates.find((t) => t.day_of_week === dow);
-    return { enabled: !!t && t.active, start: t?.start_time ?? "08:00", end: t?.end_time ?? "18:00", slot: t?.slot_duration_min ?? 30, id: t?.id };
+    const rawPeriods = Array.isArray(t?.time_periods) && t.time_periods.length > 0
+      ? (t.time_periods as TimePeriod[])
+      : [{ start: t?.start_time ?? "08:00", end: t?.end_time ?? "18:00" }];
+    return { enabled: !!t && t.active, periods: rawPeriods, slot: t?.slot_duration_min ?? 30, id: t?.id };
   });
 
   const [days, setDays] = useState<DayEntry[]>(initDays);
@@ -169,6 +177,18 @@ function ScheduleModal({ doctor, clinicId, templates, onClose, onSaved }: {
 
   const updateDay = (dow: number, patch: Partial<DayEntry>) =>
     setDays((prev) => prev.map((d, i) => i === dow ? { ...d, ...patch } : d));
+
+  const updatePeriod = (dow: number, pi: number, patch: Partial<TimePeriod>) =>
+    setDays((prev) => prev.map((d, i) => {
+      if (i !== dow) return d;
+      return { ...d, periods: d.periods.map((p, idx) => idx === pi ? { ...p, ...patch } : p) };
+    }));
+
+  const addPeriod = (dow: number) =>
+    setDays((prev) => prev.map((d, i) => i !== dow ? d : { ...d, periods: [...d.periods, { start: "14:00", end: "18:00" }] }));
+
+  const removePeriod = (dow: number, pi: number) =>
+    setDays((prev) => prev.map((d, i) => i !== dow ? d : { ...d, periods: d.periods.filter((_, idx) => idx !== pi) }));
 
   const handleSave = async () => {
     setSaving(true);
@@ -181,20 +201,22 @@ function ScheduleModal({ doctor, clinicId, templates, onClose, onSaved }: {
           clinic_id: clinicId,
           doctor_id: doctor.id,
           day_of_week: dow,
-          start_time: d.start,
-          end_time: d.end,
+          start_time: d.periods[0]?.start ?? "08:00",
+          end_time: d.periods[0]?.end ?? "18:00",
           slot_duration_min: d.slot,
           active: true,
+          time_periods: d.periods,
         });
         newTemplates.push({
           id: d.id ?? "",
           clinic_id: clinicId,
           doctor_id: doctor.id,
           day_of_week: dow,
-          start_time: d.start,
-          end_time: d.end,
+          start_time: d.periods[0]?.start ?? "08:00",
+          end_time: d.periods[0]?.end ?? "18:00",
           slot_duration_min: d.slot,
           active: true,
+          time_periods: d.periods as unknown as import("@/lib/database.types").Json,
         });
       } else if (d.id) {
         await deleteAvailabilityTemplate(d.id);
@@ -212,25 +234,42 @@ function ScheduleModal({ doctor, clinicId, templates, onClose, onSaved }: {
           const d = days[dow];
           return (
             <div key={dow} className="rounded-xl p-3 transition-all" style={{ background: d.enabled ? "rgba(1,154,103,0.05)" : "var(--input)", border: `1px solid ${d.enabled ? "rgba(1,154,103,0.2)" : "rgba(1,154,103,0.08)"}` }}>
-              <div className="flex items-center gap-3">
-                <button onClick={() => updateDay(dow, { enabled: !d.enabled })} className="shrink-0">
+              <div className="flex items-start gap-3">
+                <button onClick={() => updateDay(dow, { enabled: !d.enabled })} className="shrink-0 mt-0.5">
                   {d.enabled ? <ToggleRight size={20} style={{ color: "#019A67" }} /> : <ToggleLeft size={20} className="text-z-dim" />}
                 </button>
-                <span className="text-sm font-medium text-z-text w-8">{dayLabel}</span>
+                <span className="text-sm font-medium text-z-text w-8 shrink-0 pt-0.5">{dayLabel}</span>
                 {d.enabled && (
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <input type="time" value={d.start} onChange={(e) => updateDay(dow, { start: e.target.value })}
-                      className="text-xs rounded-lg px-2 py-1.5 text-z-text outline-none"
-                      style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.15)" }} />
-                    <span className="text-z-dim text-xs">–</span>
-                    <input type="time" value={d.end} onChange={(e) => updateDay(dow, { end: e.target.value })}
-                      className="text-xs rounded-lg px-2 py-1.5 text-z-text outline-none"
-                      style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.15)" }} />
-                    <select value={d.slot} onChange={(e) => updateDay(dow, { slot: Number(e.target.value) })}
-                      className="text-xs rounded-lg px-2 py-1.5 text-z-text outline-none ml-auto"
-                      style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.15)" }}>
-                      {[15, 20, 30, 45, 60].map((m) => <option key={m} value={m}>{m}min</option>)}
-                    </select>
+                  <div className="flex-1 space-y-1.5">
+                    {d.periods.map((period, pi) => (
+                      <div key={pi} className="flex items-center gap-2">
+                        <input type="time" value={period.start} onChange={(e) => updatePeriod(dow, pi, { start: e.target.value })}
+                          className="text-xs rounded-lg px-2 py-1.5 flex-1 text-z-text outline-none"
+                          style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.15)" }} />
+                        <span className="text-z-dim text-xs">–</span>
+                        <input type="time" value={period.end} onChange={(e) => updatePeriod(dow, pi, { end: e.target.value })}
+                          className="text-xs rounded-lg px-2 py-1.5 flex-1 text-z-text outline-none"
+                          style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.15)" }} />
+                        {pi === 0 ? (
+                          <select value={d.slot} onChange={(e) => updateDay(dow, { slot: Number(e.target.value) })}
+                            className="text-xs rounded-lg px-2 py-1.5 text-z-text outline-none"
+                            style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.15)" }}>
+                            {[15, 20, 30, 45, 60].map((m) => <option key={m} value={m}>{m}min</option>)}
+                          </select>
+                        ) : (
+                          <button onClick={() => removePeriod(dow, pi)}
+                            className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:text-red-400 transition-colors"
+                            style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.15)" }}>
+                            <X size={10} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button onClick={() => addPeriod(dow)}
+                      className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg transition-colors"
+                      style={{ color: "#019A67", background: "rgba(1,154,103,0.07)", border: "1px dashed rgba(1,154,103,0.3)" }}>
+                      <Plus size={9} /> add break
+                    </button>
                   </div>
                 )}
               </div>
@@ -388,7 +427,7 @@ function AddMemberModal({ clinicId, existingIds, onClose, onAdded }: {
   );
 }
 
-// ─── Settings Tab ─────────────────────────────────────────────────────────────
+// ─── WhatsApp + AI Tabs ────────────────────────────────────────────────────────
 import type { OpenRouterModel } from "@/app/api/admin/openrouter-models/route";
 
 async function fetchOpenRouterModels(apiKey: string): Promise<OpenRouterModel[]> {
@@ -400,78 +439,12 @@ async function fetchOpenRouterModels(apiKey: string): Promise<OpenRouterModel[]>
 
 type ClinicSettings = Database["public"]["Tables"]["clinic_settings"]["Row"];
 
-function SettingsTab({ clinicId }: { clinicId: string }) {
-  const [settings, setSettings] = useState<ClinicSettings | null>(null);
-  const [form, setForm] = useState({
-    uazapi_instance_token: "",
-    uazapi_server_url: "",
-    ai_enabled: false,
-    ai_agent_name: "",
-    ai_model: "google/gemini-2.0-flash-001",
-    ai_openai_key: "",
-    ai_system_prompt: "",
-  });
-  const [showKey, setShowKey]           = useState(false);
-  const [showToken, setShowToken]       = useState(false);
-  const [saving, setSaving]             = useState(false);
-  const [savedMsg, setSavedMsg]         = useState("");
-  const [models, setModels]             = useState<OpenRouterModel[]>([]);
-  const [modelsLoading, setModelsLoading] = useState(false);
-  const [modelsError, setModelsError]   = useState<string | null>(null);
-  const modelsFetchedForKey             = useRef<string | null>(null);
-
-  useEffect(() => {
-    getClinicSettings(clinicId).then((s) => {
-      if (!s) return;
-      setSettings(s);
-      setForm({
-        uazapi_instance_token: s.uazapi_instance_token ?? "",
-        uazapi_server_url:     s.uazapi_server_url ?? "",
-        ai_enabled:            s.ai_enabled ?? false,
-        ai_agent_name:         s.ai_agent_name ?? "",
-        ai_model:              s.ai_model ?? "google/gemini-2.0-flash-001",
-        ai_openai_key:         s.ai_openai_key ?? "",
-        ai_system_prompt:      s.ai_system_prompt ?? "",
-      });
-    });
-  }, [clinicId]);
-
-  const save = async () => {
-    setSaving(true);
-    await updateClinicSettings(clinicId, {
-      uazapi_instance_token: form.uazapi_instance_token || null,
-      uazapi_server_url:     form.uazapi_server_url || null,
-      ai_enabled:            form.ai_enabled,
-      ai_agent_name:         form.ai_agent_name || null,
-      ai_model:              form.ai_model || null,
-      ai_openai_key:         form.ai_openai_key || null,
-      ai_system_prompt:      form.ai_system_prompt || null,
-    });
-    setSaving(false);
-    setSavedMsg("Salvo!");
-    setTimeout(() => setSavedMsg(""), 2500);
-  };
-
-  useEffect(() => {
-    const key = form.ai_openai_key?.trim();
-    if (!key || modelsFetchedForKey.current === key) return;
-    modelsFetchedForKey.current = key;
-    setModelsLoading(true);
-    setModelsError(null);
-    fetchOpenRouterModels(key).then((list) => {
-      setModels(list);
-      if (list.length === 0) setModelsError("Chave inválida ou sem modelos");
-      setModelsLoading(false);
-    });
-  }, [form.ai_openai_key]);
-
-  const waStatus = settings?.uazapi_status ?? "disconnected";
-  const waConnected = waStatus === "connected";
-
-  const Field = ({ label, value, onChange, placeholder, type = "text", mono = false, children }: {
-    label: string; value: string; onChange?: (v: string) => void; placeholder?: string;
-    type?: string; mono?: boolean; children?: React.ReactNode;
-  }) => (
+// Shared field component
+function Field({ label, value, onChange, placeholder, type = "text", mono = false, children }: {
+  label: string; value: string; onChange?: (v: string) => void; placeholder?: string;
+  type?: string; mono?: boolean; children?: React.ReactNode;
+}) {
+  return (
     <div>
       <label className="text-xs text-z-dim block mb-1.5">{label}</label>
       <div className="relative">
@@ -483,10 +456,35 @@ function SettingsTab({ clinicId }: { clinicId: string }) {
       </div>
     </div>
   );
+}
+
+// ─── WhatsApp Tab ─────────────────────────────────────────────────────────────
+function WhatsappTab({ clinicId }: { clinicId: string }) {
+  const [settings, setSettings] = useState<ClinicSettings | null>(null);
+  const [token, setToken]         = useState("");
+  const [showToken, setShowToken] = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [savedMsg, setSavedMsg]   = useState("");
+
+  useEffect(() => {
+    getClinicSettings(clinicId).then((s) => {
+      if (!s) return;
+      setSettings(s);
+      setToken(s.uazapi_instance_token ?? "");
+    });
+  }, [clinicId]);
+
+  const save = async () => {
+    setSaving(true);
+    await updateClinicSettings(clinicId, { uazapi_instance_token: token || null });
+    setSaving(false); setSavedMsg("Salvo!"); setTimeout(() => setSavedMsg(""), 2500);
+  };
+
+  const waStatus = settings?.uazapi_status ?? "disconnected";
+  const waConnected = waStatus === "connected";
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      {/* UAZAPI */}
+    <div className="space-y-5 max-w-2xl">
       <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.1)" }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -502,78 +500,307 @@ function SettingsTab({ clinicId }: { clinicId: string }) {
           </span>
         </div>
 
-        <Field label="Token da instância UAZAPI" value={form.uazapi_instance_token} onChange={(v) => setForm((f) => ({ ...f, uazapi_instance_token: v }))}
+        <Field label="Token da instância UAZAPI" value={token} onChange={setToken}
           placeholder="Ex: abc123token..." mono type={showToken ? "text" : "password"}>
           <button type="button" onClick={() => setShowToken((p) => !p)} className="text-z-faint hover:text-z-dim">
             {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>
         </Field>
-        <Field label="URL do servidor UAZAPI (opcional — sobrescreve o padrão da plataforma)"
-          value={form.uazapi_server_url} onChange={(v) => setForm((f) => ({ ...f, uazapi_server_url: v }))}
-          placeholder="https://api.uazapi.com" mono />
-        <p className="text-[10px] text-z-faint">Deixe a URL em branco para usar o servidor padrão configurado na tela de login.</p>
-      </div>
 
-      {/* AI Agent */}
-      <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.1)" }}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Bot size={15} style={{ color: form.ai_enabled ? "#019A67" : undefined }} className={form.ai_enabled ? "" : "text-z-dim"} />
-            <span className="text-sm font-medium text-z-text">Agente de IA</span>
-          </div>
-          <button onClick={() => setForm((f) => ({ ...f, ai_enabled: !f.ai_enabled }))}>
-            {form.ai_enabled
-              ? <ToggleRight size={22} style={{ color: "#019A67" }} />
-              : <ToggleLeft size={22} className="text-z-faint" />}
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Nome do agente" value={form.ai_agent_name} onChange={(v) => setForm((f) => ({ ...f, ai_agent_name: v }))} placeholder="Assistente" />
-          <div>
-            <label className="text-xs text-z-dim block mb-1.5">Modelo LLM (OpenRouter)</label>
-            <select value={form.ai_model} onChange={(e) => setForm((f) => ({ ...f, ai_model: e.target.value }))}
-              className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}>
-              {OPENROUTER_MODELS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-            </select>
-          </div>
-        </div>
-
-        <Field label="Chave OpenRouter API" value={form.ai_openai_key}
-          onChange={(v) => setForm((f) => ({ ...f, ai_openai_key: v }))}
-          placeholder="sk-or-..." mono type={showKey ? "text" : "password"}>
-          <button type="button" onClick={() => setShowKey((p) => !p)} className="text-z-faint hover:text-z-dim">
-            {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-          </button>
-        </Field>
-        <p className="text-[10px] text-z-faint -mt-2">Obtenha em openrouter.ai</p>
-
-        <div>
-          <label className="text-xs text-z-dim block mb-1.5">System Prompt</label>
-          <textarea value={form.ai_system_prompt} onChange={(e) => setForm((f) => ({ ...f, ai_system_prompt: e.target.value }))}
-            rows={7} placeholder={`Você é [Nome], assistente virtual da [Clínica]. Responda de forma acolhedora e profissional...\n\nSeu objetivo é agendar consultas e tirar dúvidas dos pacientes.`}
-            className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none resize-none font-mono"
-            style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
-          <p className="text-[10px] text-z-faint mt-1">O agente já recebe contexto automático da clínica (médicos, horários, CRM). Use este prompt para definir personalidade e instruções específicas.</p>
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs"
+          style={{ background: "rgba(1,154,103,0.04)", border: "1px solid rgba(1,154,103,0.12)" }}>
+          <Wifi size={11} style={{ color: "#019A67", flexShrink: 0 }} />
+          <span className="text-z-dim">
+            O servidor UAZAPI é compartilhado por todas as clínicas — configure a URL em{" "}
+            <a href="/admin/whatsapp" className="underline" style={{ color: "#019A67" }}>Admin → WhatsApp</a>.
+          </span>
         </div>
       </div>
 
-      {/* Save */}
       <div className="flex justify-end">
         <motion.button onClick={save} disabled={saving} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm text-white font-medium disabled:opacity-60"
           style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
           {saving ? <span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" /> : <Save size={14} />}
-          {savedMsg || (saving ? "Salvando..." : "Salvar configurações")}
+          {savedMsg || (saving ? "Salvando..." : "Salvar")}
         </motion.button>
       </div>
     </div>
   );
 }
 
+// ─── Agente de IA Tab ─────────────────────────────────────────────────────────
+type ExecRow = {
+  id: string; phone: string | null; contact_name: string | null;
+  status: string; input_preview: string | null; final_response: string | null;
+  iterations: number; started_at: string; duration_ms: number | null; error_message: string | null;
+};
+type StepRow = {
+  id: string; step_index: number; type: string; tool_name: string | null;
+  tool_args: Record<string, unknown> | null; tool_result: string | null;
+  duration_ms: number | null; error: string | null;
+};
+
+function ClinicExecLogs({ clinicId }: { clinicId: string }) {
+  const [execs, setExecs]       = useState<ExecRow[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [selected, setSelected] = useState<ExecRow | null>(null);
+  const [steps, setSteps]       = useState<StepRow[]>([]);
+  const [stepsLoading, setStepsLoading] = useState(false);
+
+  const loadExecs = useCallback(() => {
+    setLoading(true);
+    supabase.from("ai_executions")
+      .select("id,phone,contact_name,status,input_preview,final_response,iterations,started_at,duration_ms,error_message")
+      .eq("clinic_id", clinicId)
+      .order("started_at", { ascending: false })
+      .limit(30)
+      .then(({ data }) => { setExecs((data ?? []) as ExecRow[]); setLoading(false); });
+  }, [clinicId]);
+
+  useEffect(() => { loadExecs(); }, [loadExecs]);
+
+  const openExec = async (exec: ExecRow) => {
+    setSelected(exec);
+    setSteps([]);
+    setStepsLoading(true);
+    const { data } = await supabase.from("ai_execution_steps")
+      .select("*").eq("execution_id", exec.id).order("step_index");
+    setSteps((data ?? []) as StepRow[]);
+    setStepsLoading(false);
+  };
+
+  const statusColor = (s: string) => s === "success" ? "#019A67" : s === "error" ? "#e05555" : "#f59e0b";
+
+  if (selected) {
+    return (
+      <div>
+        <button onClick={() => setSelected(null)} className="flex items-center gap-1.5 text-xs text-z-dim hover:text-z-text mb-3">
+          <ChevronLeft size={13} /> Voltar às execuções
+        </button>
+        <div className="flex items-center gap-2 mb-3">
+          <p className="text-sm font-medium text-z-text">{selected.contact_name ?? selected.phone ?? "Desconhecido"}</p>
+          <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: `${statusColor(selected.status)}15`, color: statusColor(selected.status) }}>
+            {selected.status}
+          </span>
+          {selected.duration_ms != null && <span className="text-[10px] text-z-faint">{(selected.duration_ms / 1000).toFixed(1)}s</span>}
+        </div>
+        {selected.input_preview && (
+          <div className="mb-3 px-3 py-2 rounded-xl text-xs text-z-dim" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+            {selected.input_preview}
+          </div>
+        )}
+        {stepsLoading ? (
+          <p className="text-xs text-z-faint text-center py-4">Carregando steps...</p>
+        ) : (
+          <div className="space-y-1.5">
+            {steps.map((step) => {
+              const color = step.error ? "#e05555" : step.type === "llm_call" ? "#6366f1" : step.type === "tool_call" ? "#f59e0b" : "#019A67";
+              const icon = step.type === "llm_call" ? <Zap size={10} /> : step.type === "tool_call" ? <Wrench size={10} /> : step.error ? <XCircle size={10} /> : <CheckCircle2 size={10} />;
+              const label = step.type === "llm_call" ? "LLM" : step.type === "tool_call" ? `↳ ${step.tool_name}` : `✓ ${step.tool_name}`;
+              return (
+                <div key={step.id} className="flex items-start gap-2 px-3 py-2 rounded-xl text-xs"
+                  style={{ background: `${color}06`, border: `1px solid ${color}20` }}>
+                  <div className="w-5 h-5 rounded-md flex items-center justify-center text-white shrink-0 mt-0.5" style={{ background: color }}>{icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate" style={{ color }}>{label}</p>
+                    {step.tool_result && <p className="text-z-faint truncate mt-0.5">{step.tool_result.slice(0, 100)}</p>}
+                    {step.error && <p className="truncate mt-0.5" style={{ color: "#e05555" }}>{step.error}</p>}
+                  </div>
+                  {step.duration_ms != null && <span className="text-z-faint shrink-0">{step.duration_ms}ms</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {selected.final_response && (
+          <div className="mt-3 px-3 py-2.5 rounded-xl" style={{ background: "rgba(1,154,103,0.06)", border: "1px solid rgba(1,154,103,0.2)" }}>
+            <p className="text-[10px] font-medium mb-1" style={{ color: "#019A67" }}>Resposta final</p>
+            <p className="text-xs text-z-text whitespace-pre-wrap">{selected.final_response}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs text-z-dim">{execs.length} execuções recentes</p>
+        <button onClick={loadExecs} className="text-z-faint hover:text-z-dim transition-colors"><RefreshCw size={11} /></button>
+      </div>
+      {loading ? (
+        <p className="text-xs text-z-faint text-center py-6">Carregando...</p>
+      ) : execs.length === 0 ? (
+        <div className="text-center py-8">
+          <ClipboardList size={20} className="mx-auto mb-2 text-z-faint" />
+          <p className="text-xs text-z-faint">Nenhuma execução registrada ainda.</p>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {execs.map((exec, i) => (
+            <motion.button key={exec.id} initial={{ opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}
+              onClick={() => openExec(exec)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:opacity-80 transition-opacity"
+              style={{ background: "var(--surface-2)", border: "1px solid rgba(1,154,103,0.08)" }}>
+              <div className="w-2 h-2 rounded-full shrink-0" style={{ background: statusColor(exec.status) }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-z-text truncate">{exec.contact_name ?? exec.phone ?? "Desconhecido"}</p>
+                {exec.input_preview && <p className="text-[10px] text-z-faint truncate">{exec.input_preview}</p>}
+              </div>
+              <div className="flex items-center gap-2 shrink-0 text-[10px] text-z-faint">
+                {exec.duration_ms != null && <span className="flex items-center gap-0.5"><Clock size={9} />{(exec.duration_ms / 1000).toFixed(1)}s</span>}
+                <Phone size={9} />
+                <span>{new Date(exec.started_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+                <ChevronRight size={11} />
+              </div>
+            </motion.button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AgenteTab({ clinicId }: { clinicId: string }) {
+  const [form, setForm] = useState({
+    ai_enabled: false, ai_agent_name: "", ai_model: "google/gemini-2.0-flash-001",
+    ai_openai_key: "", ai_system_prompt: "",
+  });
+  const [showKey, setShowKey]           = useState(false);
+  const [saving, setSaving]             = useState(false);
+  const [savedMsg, setSavedMsg]         = useState("");
+  const [models, setModels]             = useState<OpenRouterModel[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelsError, setModelsError]   = useState<string | null>(null);
+  const modelsFetchedForKey             = useRef<string | null>(null);
+  const [logsTab, setLogsTab]           = useState<"config" | "logs">("config");
+
+  useEffect(() => {
+    getClinicSettings(clinicId).then((s) => {
+      if (!s) return;
+      setForm({
+        ai_enabled: s.ai_enabled ?? false, ai_agent_name: s.ai_agent_name ?? "",
+        ai_model: s.ai_model ?? "google/gemini-2.0-flash-001",
+        ai_openai_key: s.ai_openai_key ?? "", ai_system_prompt: s.ai_system_prompt ?? "",
+      });
+    });
+  }, [clinicId]);
+
+  const save = async () => {
+    setSaving(true);
+    await updateClinicSettings(clinicId, {
+      ai_enabled: form.ai_enabled, ai_agent_name: form.ai_agent_name || null,
+      ai_model: form.ai_model || null, ai_openai_key: form.ai_openai_key || null,
+      ai_system_prompt: form.ai_system_prompt || null,
+    });
+    setSaving(false); setSavedMsg("Salvo!"); setTimeout(() => setSavedMsg(""), 2500);
+  };
+
+  useEffect(() => {
+    const key = form.ai_openai_key?.trim();
+    if (!key || modelsFetchedForKey.current === key) return;
+    modelsFetchedForKey.current = key;
+    setModelsLoading(true); setModelsError(null);
+    fetchOpenRouterModels(key).then((list) => {
+      setModels(list);
+      if (list.length === 0) setModelsError("Chave inválida ou sem modelos");
+      setModelsLoading(false);
+    });
+  }, [form.ai_openai_key]);
+
+  return (
+    <div className="space-y-4 max-w-2xl">
+      {/* Sub-tabs */}
+      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+        {([["config", "Configuração", <Bot size={12} key="b" />], ["logs", "Logs de Execução", <ClipboardList size={12} key="l" />]] as const).map(([id, label, icon]) => (
+          <button key={id} onClick={() => setLogsTab(id)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all"
+            style={{ background: logsTab === id ? "rgba(1,154,103,0.12)" : "transparent", color: logsTab === id ? "#019A67" : "var(--z-dim)", fontWeight: logsTab === id ? 500 : 400 }}>
+            {icon}{label}
+          </button>
+        ))}
+      </div>
+
+      {logsTab === "config" && (
+        <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.1)" }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bot size={15} style={{ color: form.ai_enabled ? "#019A67" : undefined }} className={form.ai_enabled ? "" : "text-z-dim"} />
+              <span className="text-sm font-medium text-z-text">Agente de IA</span>
+            </div>
+            <button onClick={() => setForm((f) => ({ ...f, ai_enabled: !f.ai_enabled }))}>
+              {form.ai_enabled ? <ToggleRight size={22} style={{ color: "#019A67" }} /> : <ToggleLeft size={22} className="text-z-faint" />}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Nome do agente" value={form.ai_agent_name} onChange={(v) => setForm((f) => ({ ...f, ai_agent_name: v }))} placeholder="Assistente" />
+            <div>
+              <label className="text-xs text-z-dim block mb-1.5">
+                Modelo LLM (OpenRouter)
+                {modelsLoading && <span className="ml-1 text-z-faint"> · carregando...</span>}
+                {modelsError && <span className="ml-1" style={{ color: "#e05555" }}> · {modelsError}</span>}
+                {models.length > 0 && <span className="ml-1 text-z-faint"> · {models.length} modelos</span>}
+              </label>
+              <select value={form.ai_model} onChange={(e) => setForm((f) => ({ ...f, ai_model: e.target.value }))}
+                className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none"
+                style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}>
+                {models.length === 0 ? (
+                  <option value={form.ai_model}>{form.ai_model || "— insira a chave para carregar —"}</option>
+                ) : (
+                  Object.entries(models.reduce<Record<string, OpenRouterModel[]>>((acc, m) => {
+                    const provider = m.id.split("/")[0] ?? "other";
+                    (acc[provider] ??= []).push(m); return acc;
+                  }, {})).sort(([a], [b]) => a.localeCompare(b)).map(([provider, list]) => (
+                    <optgroup key={provider} label={provider}>
+                      {list.map((m) => <option key={m.id} value={m.id}>{m.name ?? m.id}</option>)}
+                    </optgroup>
+                  ))
+                )}
+              </select>
+            </div>
+          </div>
+
+          <Field label="Chave OpenRouter API" value={form.ai_openai_key}
+            onChange={(v) => setForm((f) => ({ ...f, ai_openai_key: v }))}
+            placeholder="sk-or-..." mono type={showKey ? "text" : "password"}>
+            <button type="button" onClick={() => setShowKey((p) => !p)} className="text-z-faint hover:text-z-dim">
+              {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </Field>
+
+          <div>
+            <label className="text-xs text-z-dim block mb-1.5">System Prompt</label>
+            <textarea value={form.ai_system_prompt} onChange={(e) => setForm((f) => ({ ...f, ai_system_prompt: e.target.value }))}
+              rows={7} placeholder={`Você é [Nome], assistente virtual da [Clínica]. Responda de forma acolhedora e profissional...`}
+              className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none resize-none font-mono"
+              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+            <p className="text-[10px] text-z-faint mt-1">O agente já recebe contexto automático da clínica (médicos, horários, CRM). Defina personalidade e instruções específicas aqui.</p>
+          </div>
+
+          <div className="flex justify-end">
+            <motion.button onClick={save} disabled={saving} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm text-white font-medium disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+              {saving ? <span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" /> : <Save size={14} />}
+              {savedMsg || (saving ? "Salvando..." : "Salvar")}
+            </motion.button>
+          </div>
+        </div>
+      )}
+
+      {logsTab === "logs" && (
+        <div className="rounded-2xl p-4" style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.1)" }}>
+          <ClinicExecLogs clinicId={clinicId} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
-type Tab = "medicos" | "tipos" | "membros" | "config";
+type Tab = "medicos" | "tipos" | "membros" | "whatsapp" | "agente";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function ClinicDetailPage() {
@@ -598,19 +825,22 @@ export default function ClinicDetailPage() {
   // members
   const [members, setMembers] = useState<MemberWithProfile[]>([]);
   const [showAddMember, setShowAddMember] = useState(false);
+  const [allUsers, setAllUsers] = useState<UserWithClinics[]>([]);
 
   const loadClinic = useCallback(async () => {
     setLoading(true);
-    const [c, docs, types, mems] = await Promise.all([
+    const [c, docs, types, mems, users] = await Promise.all([
       getClinicById(clinicId),
       getAllDoctors(clinicId),
       getAllAppointmentTypes(clinicId),
       getClinicMembers(clinicId),
+      getAllUsers(),
     ]);
     setClinic(c);
     setDoctors(docs);
     setApptTypes(types);
     setMembers(mems);
+    setAllUsers(users);
     setLoading(false);
   }, [clinicId]);
 
@@ -651,8 +881,11 @@ export default function ClinicDetailPage() {
     { id: "medicos",  label: "Médicos & Horários", icon: <Stethoscope size={14} /> },
     { id: "tipos",    label: "Tipos de Consulta",  icon: <Calendar size={14} /> },
     { id: "membros",  label: "Membros",             icon: <Users size={14} /> },
-    { id: "config",   label: "Configurações",       icon: <Settings2 size={14} /> },
+    { id: "whatsapp", label: "WhatsApp",            icon: <Wifi size={14} /> },
+    { id: "agente",   label: "Agente de IA",        icon: <Bot size={14} /> },
   ];
+
+  const emailMap = new Map(allUsers.map((u) => [u.id, u.email]));
 
   return (
     <div className="p-6 space-y-5">
@@ -853,7 +1086,13 @@ export default function ClinicDetailPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-z-text truncate">{m.profile?.full_name ?? m.user_id}</p>
-                  <p className="text-[10px] text-z-faint">Desde {new Date(m.invited_at).toLocaleDateString("pt-BR")}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-z-dim flex items-center gap-1">
+                      <Mail size={9} className="shrink-0" />
+                      {emailMap.get(m.user_id) ?? <span className="text-z-faint">—</span>}
+                    </p>
+                    <span className="text-[10px] text-z-faint">· desde {new Date(m.invited_at).toLocaleDateString("pt-BR")}</span>
+                  </div>
                 </div>
                 <select value={m.role}
                   onChange={async (e) => {
@@ -879,8 +1118,11 @@ export default function ClinicDetailPage() {
         </div>
       )}
 
-      {/* ── Tab: Configurações ───────────────────────────────────────────────── */}
-      {tab === "config" && <SettingsTab clinicId={clinicId} />}
+      {/* ── Tab: WhatsApp ─────────────────────────────────────────────────────── */}
+      {tab === "whatsapp" && <WhatsappTab clinicId={clinicId} />}
+
+      {/* ── Tab: Agente de IA ─────────────────────────────────────────────────── */}
+      {tab === "agente" && <AgenteTab clinicId={clinicId} />}
 
       {/* ── Modals ─────────────────────────────────────────────────────────────── */}
       <AnimatePresence>

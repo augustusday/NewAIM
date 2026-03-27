@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Wifi, WifiOff, QrCode, Loader2, RefreshCw, Trash2, Plus,
-  Settings, Copy, Check, AlertCircle, Smartphone, X, Save,
+  Settings, Copy, Check, AlertCircle, Smartphone, X, Save, KeyRound, Eye, EyeOff, Link,
 } from "lucide-react";
 import {
   getAllClinics, getPlatformSettings, setPlatformSetting,
@@ -13,8 +13,7 @@ import {
 
 // ── UAZAPI helpers (proxy through our API route) ──────────────────────────────
 async function uazapiRequest(
-  serverUrl: string,
-  instanceToken: string,
+  clinicId: string,
   method: "GET" | "POST" | "DELETE",
   path: string,
   body?: unknown
@@ -22,7 +21,7 @@ async function uazapiRequest(
   const res = await fetch("/api/uazapi", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ serverUrl, instanceToken, method, path, body }),
+    body: JSON.stringify({ clinicId, method, path, body }),
   });
   return res.json();
 }
@@ -54,13 +53,14 @@ function ClinicWaCard({
   const [token, setToken]         = useState(clinic.uazapi_instance_token ?? "");
   const [savingToken, setSavingToken] = useState(false);
   const [copied, setCopied]       = useState(false);
+  const [webhookStatus, setWebhookStatus] = useState<"idle" | "registering" | "ok" | "error">("idle");
   const pollRef                   = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPoll = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
 
   const fetchStatus = useCallback(async () => {
     if (!serverUrl || !clinic.uazapi_instance_token) return;
-    const data = await uazapiRequest(serverUrl, clinic.uazapi_instance_token, "GET", "/instance/status");
+    const data = await uazapiRequest(clinic.id, "GET", "/instance/status");
     if (data?.instance) {
       const newStatus = data.instance.status ?? data.connectionStatus ?? "disconnected";
       setStatus(newStatus);
@@ -69,7 +69,7 @@ function ClinicWaCard({
       if (data.instance.name) setProfileName(data.instance.name);
       if (newStatus === "connected") stopPoll();
     }
-  }, [serverUrl, clinic.uazapi_instance_token]);
+  }, [serverUrl, clinic.id, clinic.uazapi_instance_token]);
 
   useEffect(() => {
     if (clinic.uazapi_instance_token && serverUrl) fetchStatus();
@@ -79,7 +79,7 @@ function ClinicWaCard({
   const handleConnect = async () => {
     if (!serverUrl || !clinic.uazapi_instance_token) return;
     setLoading(true);
-    await uazapiRequest(serverUrl, clinic.uazapi_instance_token, "POST", "/instance/connect");
+    await uazapiRequest(clinic.id, "POST", "/instance/connect");
     await fetchStatus();
     setLoading(false);
     // Poll every 4s for QR / connection
@@ -89,7 +89,7 @@ function ClinicWaCard({
   const handleDisconnect = async () => {
     if (!serverUrl || !clinic.uazapi_instance_token) return;
     setLoading(true);
-    await uazapiRequest(serverUrl, clinic.uazapi_instance_token, "DELETE", "/instance/disconnect");
+    await uazapiRequest(clinic.id, "DELETE", "/instance/disconnect");
     setStatus("disconnected"); setQrCode(null); setPairCode(null);
     setLoading(false); stopPoll();
   };
@@ -99,6 +99,22 @@ function ClinicWaCard({
     setSavingToken(true);
     await saveClinicUazapiToken(clinic.id, token.trim(), serverUrl);
     setSavingToken(false);
+
+    // Auto-register webhook URL with UAZAPI
+    if (serverUrl) {
+      setWebhookStatus("registering");
+      try {
+        const webhookUrl = `${window.location.origin}/api/webhooks/uazapi?token=${token.trim()}`;
+        await uazapiRequest(clinic.id, "POST", "/webhook/set", {
+          url: webhookUrl,
+          enabled: true,
+        });
+        setWebhookStatus("ok");
+      } catch {
+        setWebhookStatus("error");
+      }
+    }
+
     setShowConfig(false);
     onRefresh();
   };
@@ -171,15 +187,33 @@ function ClinicWaCard({
                 </motion.button>
               </div>
               {hasInstance && (
-                <div className="flex items-center justify-between">
-                  <button onClick={copyToken} className="flex items-center gap-1.5 text-[10px] text-z-dim hover:text-z-text transition-colors">
-                    {copied ? <Check size={11} className="text-[#019A67]" /> : <Copy size={11} />}
-                    {copied ? "Copiado!" : "Copiar token atual"}
-                  </button>
-                  <button onClick={handleClearInstance} className="flex items-center gap-1.5 text-[10px] text-[#e05555] hover:opacity-80 transition-opacity">
-                    <Trash2 size={11} /> Remover instância
-                  </button>
-                </div>
+                <>
+                  <div className="flex items-center justify-between">
+                    <button onClick={copyToken} className="flex items-center gap-1.5 text-[10px] text-z-dim hover:text-z-text transition-colors">
+                      {copied ? <Check size={11} className="text-[#019A67]" /> : <Copy size={11} />}
+                      {copied ? "Copiado!" : "Copiar token atual"}
+                    </button>
+                    <button onClick={handleClearInstance} className="flex items-center gap-1.5 text-[10px] text-[#e05555] hover:opacity-80 transition-opacity">
+                      <Trash2 size={11} /> Remover instância
+                    </button>
+                  </div>
+                  {/* Webhook URL display */}
+                  <div className="mt-1 space-y-1.5">
+                    <p className="text-[10px] text-z-faint flex items-center gap-1"><Link size={10} /> URL do webhook registrado no UAZAPI:</p>
+                    <div className="px-2.5 py-1.5 rounded-lg font-mono text-[10px] text-z-dim break-all" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+                      {typeof window !== "undefined" ? `${window.location.origin}/api/webhooks/uazapi?token=${clinic.uazapi_instance_token}` : `/api/webhooks/uazapi?token=${clinic.uazapi_instance_token}`}
+                    </div>
+                    {webhookStatus === "registering" && (
+                      <p className="text-[10px] text-z-faint flex items-center gap-1"><Loader2 size={10} className="animate-spin" /> Registrando webhook…</p>
+                    )}
+                    {webhookStatus === "ok" && (
+                      <p className="text-[10px] text-[#019A67] flex items-center gap-1"><Check size={10} /> Webhook registrado com sucesso</p>
+                    )}
+                    {webhookStatus === "error" && (
+                      <p className="text-[10px] text-[#e05555] flex items-center gap-1"><AlertCircle size={10} /> Falha ao registrar webhook — verifique a URL do servidor</p>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </motion.div>
@@ -267,19 +301,27 @@ function ClinicWaCard({
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function WhatsAppAdminPage() {
-  const [clinics, setClinics]       = useState<ClinicWithStats[]>([]);
-  const [serverUrl, setServerUrl]   = useState("");
-  const [editingUrl, setEditingUrl] = useState(false);
-  const [urlDraft, setUrlDraft]     = useState("");
-  const [savingUrl, setSavingUrl]   = useState(false);
-  const [loading, setLoading]       = useState(true);
-  const [urlSaved, setUrlSaved]     = useState(false);
+  const [clinics, setClinics]           = useState<ClinicWithStats[]>([]);
+  const [serverUrl, setServerUrl]       = useState("");
+  const [editingUrl, setEditingUrl]     = useState(false);
+  const [urlDraft, setUrlDraft]         = useState("");
+  const [savingUrl, setSavingUrl]       = useState(false);
+  const [loading, setLoading]           = useState(true);
+  const [urlSaved, setUrlSaved]         = useState(false);
+  const [openaiKey, setOpenaiKey]       = useState("");
+  const [openaiDraft, setOpenaiDraft]   = useState("");
+  const [editingKey, setEditingKey]     = useState(false);
+  const [savingKey, setSavingKey]       = useState(false);
+  const [keySaved, setKeySaved]         = useState(false);
+  const [showKey, setShowKey]           = useState(false);
 
   const loadData = useCallback(async () => {
     const [clinicsData, settings] = await Promise.all([getAllClinics(), getPlatformSettings()]);
     setClinics(clinicsData);
     setServerUrl(settings.uazapi_server_url ?? "");
     setUrlDraft(settings.uazapi_server_url ?? "");
+    setOpenaiKey(settings.openai_api_key ?? "");
+    setOpenaiDraft(settings.openai_api_key ?? "");
     setLoading(false);
   }, []);
 
@@ -293,6 +335,16 @@ export default function WhatsAppAdminPage() {
     setEditingUrl(false);
     setUrlSaved(true);
     setTimeout(() => setUrlSaved(false), 2000);
+  };
+
+  const handleSaveOpenaiKey = async () => {
+    setSavingKey(true);
+    await setPlatformSetting("openai_api_key", openaiDraft.trim());
+    setOpenaiKey(openaiDraft.trim());
+    setSavingKey(false);
+    setEditingKey(false);
+    setKeySaved(true);
+    setTimeout(() => setKeySaved(false), 2000);
   };
 
   const connected    = clinics.filter((c) => c.uazapi_status === "connected").length;
@@ -357,6 +409,68 @@ export default function WhatsAppAdminPage() {
         {!serverUrl && !editingUrl && (
           <div className="mt-3 flex items-center gap-2 text-xs text-[#f59e0b]" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "10px", padding: "8px 12px" }}>
             <AlertCircle size={12} className="shrink-0" /> Configure a URL do servidor UAZAPI para habilitar o WhatsApp em todas as clínicas.
+          </div>
+        )}
+      </div>
+
+      {/* OpenAI API Key card */}
+      <div className="rounded-2xl p-5" style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.15)" }}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(1,154,103,0.1)" }}>
+              <KeyRound size={15} style={{ color: "#019A67" }} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-z-text">Chave OpenAI (global)</p>
+              <p className="text-xs text-z-faint">Usada para transcrição de áudio e respostas do agente de IA em todas as clínicas</p>
+            </div>
+          </div>
+          {!editingKey ? (
+            <button onClick={() => setEditingKey(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs text-z-dim hover:text-z-text transition-all" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+              <Settings size={11} /> {openaiKey ? "Alterar chave" : "Configurar"}
+            </button>
+          ) : (
+            <button onClick={() => setEditingKey(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)] transition-all">
+              <X size={13} />
+            </button>
+          )}
+        </div>
+
+        {editingKey ? (
+          <div className="flex gap-2">
+            <div className="flex-1 flex items-center gap-1 rounded-xl px-3" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}>
+              <input
+                type={showKey ? "text" : "password"}
+                value={openaiDraft}
+                onChange={(e) => setOpenaiDraft(e.target.value)}
+                placeholder="sk-..."
+                className="flex-1 py-2.5 bg-transparent text-sm text-z-text placeholder:text-z-faint outline-none font-mono"
+              />
+              <button onClick={() => setShowKey((v) => !v)} className="text-z-dim hover:text-z-text transition-colors p-1">
+                {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
+              </button>
+            </div>
+            <motion.button whileHover={{ scale: 1.02 }} onClick={handleSaveOpenaiKey} disabled={savingKey}
+              className="px-4 py-2.5 rounded-xl text-sm text-white font-medium flex items-center gap-2 disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+              {savingKey ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              Salvar
+            </motion.button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl font-mono text-sm" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+            {openaiKey ? (
+              <><div className="w-2 h-2 rounded-full shrink-0 animate-pulse" style={{ background: "#019A67" }} /><span className="text-z-dim truncate">sk-...{openaiKey.slice(-8)}</span></>
+            ) : (
+              <><div className="w-2 h-2 rounded-full shrink-0" style={{ background: "#6b8f78" }} /><span className="text-z-faint">Chave não configurada</span></>
+            )}
+            {keySaved && <span className="ml-auto text-[10px] text-[#019A67] flex items-center gap-1 shrink-0"><Check size={10} /> Salvo</span>}
+          </div>
+        )}
+
+        {!openaiKey && !editingKey && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-[#f59e0b]" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "10px", padding: "8px 12px" }}>
+            <AlertCircle size={12} className="shrink-0" /> Configure a chave OpenAI para habilitar transcrição de áudio e o agente de IA.
           </div>
         )}
       </div>

@@ -10,21 +10,31 @@ export async function getContacts(clinicId: string): Promise<Contact[]> {
   return data ?? [];
 }
 
-export async function getContact(id: string): Promise<Contact | null> {
-  const { data } = await supabase.from("contacts").select("*").eq("id", id).single();
+export async function getContact(id: string, clinicId: string): Promise<Contact | null> {
+  const { data } = await supabase.from("contacts").select("*").eq("id", id).eq("clinic_id", clinicId).single();
   return data;
 }
 
 export async function updateContact(
   id: string,
-  data: Partial<Pick<Contact, "full_name" | "phone" | "email" | "status" | "notes" | "tags" | "birth_date" | "gender" | "document">>
+  data: Partial<Pick<Contact, "full_name" | "phone" | "email" | "status" | "notes" | "tags" | "birth_date" | "gender" | "document" | "insurance_type" | "insurance_name" | "insurance_value">>
 ): Promise<Contact | null> {
-  const { data: updated } = await supabase
+  const { data: updated, error } = await supabase
     .from("contacts")
     .update({ ...data, updated_at: new Date().toISOString() })
     .eq("id", id)
     .select()
     .single();
+  if (error) console.error("[updateContact]", error.message, error.details);
+
+  // Propagate name change to chat_sessions.wa_contact_name
+  if (data.full_name && updated) {
+    await supabase
+      .from("chat_sessions")
+      .update({ wa_contact_name: data.full_name })
+      .eq("contact_id", id);
+  }
+
   return updated;
 }
 

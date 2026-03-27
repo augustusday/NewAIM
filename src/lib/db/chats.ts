@@ -19,7 +19,8 @@ export async function getChatSessions(
     query = query.eq("status", filter.status);
   }
 
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error) console.error("[getChatSessions]", error.message);
   return (data as unknown as ChatSessionWithContact[]) ?? [];
 }
 
@@ -53,6 +54,10 @@ export async function markChatRead(sessionId: string): Promise<void> {
     .eq("id", sessionId);
 }
 
+export async function setAiPaused(sessionId: string, paused: boolean): Promise<void> {
+  await supabase.from("chat_sessions").update({ ai_paused: paused }).eq("id", sessionId);
+}
+
 export async function updateChatStatus(
   sessionId: string,
   status: string
@@ -66,17 +71,13 @@ export async function updateChatStatus(
  * Uses the /api/uazapi proxy to avoid CORS.
  */
 export async function syncChatsFromUazapi(
-  clinicId: string,
-  serverUrl: string,
-  instanceToken: string
+  clinicId: string
 ): Promise<void> {
   try {
     const res = await fetch("/api/uazapi", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        serverUrl,
-        instanceToken,
         method: "POST",
         path: "/chat/find",
         body: { limit: 50, offset: 0, sort: "-wa_lastMsgTimestamp", wa_isGroup: false },
@@ -110,7 +111,7 @@ export async function syncChatsFromUazapi(
         })
       )
     );
-  } catch {
-    // UAZAPI unreachable — silent fail
+  } catch (err) {
+    console.error("[syncChatsFromUazapi]", err instanceof Error ? err.message : err);
   }
 }

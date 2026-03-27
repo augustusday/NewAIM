@@ -104,6 +104,9 @@ export default function DashboardPage() {
       setTopDoctors(doctors);
       setAppointments(appts);
       setLoading(false);
+    }).catch((err) => {
+      console.error("[Dashboard] Failed to load data:", err);
+      setLoading(false);
     });
   }, [clinicId, clinicLoaded]);
 

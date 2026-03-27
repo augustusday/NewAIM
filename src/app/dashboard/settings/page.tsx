@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Wifi,
@@ -8,27 +10,40 @@ import {
   RefreshCw,
   Save,
   Trash2,
-  CheckCircle2,
   AlertCircle,
-  ExternalLink,
-  QrCode,
-  Phone,
-  Copy,
+  Clock,
   Check,
   Building2,
-  Clock,
-  Bot,
-  ToggleLeft,
-  ToggleRight,
-  MessageSquare,
-  Sparkles,
+  MapPin,
+  Users,
+  CalendarDays,
+  Stethoscope,
+  Plus,
+  Pencil,
+  X,
+  Calendar,
+  Link2,
+  Link2Off,
 } from "lucide-react";
 import { useUazapiConfig } from "@/hooks/use-uazapi-config";
 import { useClinic } from "@/hooks/use-clinic";
 import { uazapi, type UazapiInstance } from "@/lib/uazapi";
 import { supabase } from "@/lib/supabase";
+import type { AppointmentType } from "@/lib/database.types";
+import type { Doctor } from "@/lib/database.types";
 
 type ConnectionStatus = "idle" | "loading" | "connected" | "connecting" | "disconnected" | "error";
+
+type Tab = "perfil" | "usuarios" | "horarios" | "tipos" | "whatsapp" | "google";
+
+const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: "perfil",    label: "Perfil",       icon: <Building2 size={14} /> },
+  { id: "usuarios",  label: "Usuários",     icon: <Users size={14} /> },
+  { id: "horarios",  label: "Horários",     icon: <Clock size={14} /> },
+  { id: "tipos",     label: "Consultas",    icon: <Stethoscope size={14} /> },
+  { id: "whatsapp",  label: "WhatsApp",     icon: <Wifi size={14} /> },
+  { id: "google",    label: "Google",       icon: <Calendar size={14} /> },
+];
 
 const TIMEZONES = [
   "America/Sao_Paulo",
@@ -44,134 +59,682 @@ const TIMEZONES = [
   "America/Noronha",
 ];
 
-export default function SettingsPage() {
-  const { clinicId, loaded: clinicLoaded } = useClinic();
-  const { config, save, clear, loaded: uazapiLoaded, isConfigured } = useUazapiConfig();
+const DAYS = [
+  { key: "mon", label: "Segunda" },
+  { key: "tue", label: "Terça" },
+  { key: "wed", label: "Quarta" },
+  { key: "thu", label: "Quinta" },
+  { key: "fri", label: "Sexta" },
+  { key: "sat", label: "Sábado" },
+  { key: "sun", label: "Domingo" },
+] as const;
 
-  // Clinic profile state
-  const [clinicName, setClinicName] = useState("");
-  const [clinicTimezone, setClinicTimezone] = useState("America/Sao_Paulo");
-  const [savingClinic, setSavingClinic] = useState(false);
-  const [clinicSaved, setClinicSaved] = useState(false);
+const COLOR_PRESETS = [
+  "#019A67", "#01c47f", "#3b82f6", "#8b5cf6", "#f59e0b",
+  "#ef4444", "#ec4899", "#06b6d4", "#84cc16", "#f97316",
+];
 
-  // AI Agent state
-  const [aiEnabled, setAiEnabled] = useState(false);
-  const [aiAgentName, setAiAgentName] = useState("");
-  const [aiModel, setAiModel] = useState("");
-  const [aiConvCount, setAiConvCount] = useState(0);
-  const [aiLoaded, setAiLoaded] = useState(false);
-  const [aiToggling, setAiToggling] = useState(false);
+type DayKey = (typeof DAYS)[number]["key"];
+type TimePeriod = { start: string; end: string };
+type BusinessHours = Partial<Record<DayKey, TimePeriod[]>>;
 
-  // UAZAPI state
-  const [form, setForm] = useState({ serverUrl: "", instanceToken: "" });
+type MemberRow = {
+  id: string;
+  role: string;
+  joined_at: string | null;
+  profiles: { full_name: string } | null;
+};
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+function CardShell({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      className="rounded-2xl p-6 space-y-5"
+      style={{ background: "var(--surface-1)", border: "1px solid var(--border)", boxShadow: "var(--z-shadow)" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function SectionHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+        style={{ background: "rgba(1,154,103,0.1)", border: "1px solid rgba(1,154,103,0.2)" }}>
+        <span style={{ color: "#019A67" }}>{icon}</span>
+      </div>
+      <div>
+        <h2 className="text-sm font-medium" style={{ color: "var(--z-text)" }}>{title}</h2>
+        <p className="text-xs mt-0.5" style={{ color: "var(--z-text-dim)" }}>{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+function SaveButton({ saving, saved, onClick }: { saving: boolean; saved: boolean; onClick: () => void }) {
+  return (
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.97 }}
+      onClick={onClick}
+      disabled={saving}
+      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
+      style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 16px rgba(1,154,103,0.25)" }}
+    >
+      {saving ? <RefreshCw size={14} className="animate-spin" /> : saved ? <Check size={14} /> : <Save size={14} />}
+      {saved ? "Salvo!" : "Salvar"}
+    </motion.button>
+  );
+}
+
+// ── Tab: Perfil ────────────────────────────────────────────────────────────────
+
+function TabPerfil({ clinicId }: { clinicId: string }) {
+  const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
+  const [timezone, setTimezone] = useState("America/Sao_Paulo");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    supabase.from("clinics").select("name, timezone, address").eq("id", clinicId).single()
+      .then(({ data }) => {
+        if (data) {
+          setName(data.name);
+          setTimezone(data.timezone ?? "America/Sao_Paulo");
+          setAddress(data.address ?? "");
+        }
+      });
+  }, [clinicId]);
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    await supabase.from("clinics").update({
+      name: name.trim(),
+      timezone,
+      address: address.trim() || null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", clinicId);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  const inputStyle = {
+    background: "var(--input)",
+    border: "1px solid var(--border)",
+    color: "var(--z-text)",
+  };
+
+  return (
+    <CardShell>
+      <SectionHeader icon={<Building2 size={15} />} title="Perfil da Clínica" subtitle="Nome, endereço e fuso horário" />
+
+      <div className="space-y-3">
+        <div>
+          <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--z-text-dim)" }}>Nome da clínica</label>
+          <input
+            type="text"
+            placeholder="Nome da clínica"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
+            style={inputStyle}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(1,154,103,0.5)")}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--z-text-dim)" }}>
+            <span className="flex items-center gap-1.5"><MapPin size={11} /> Endereço</span>
+          </label>
+          <input
+            type="text"
+            placeholder="Rua, número, bairro, cidade — UF"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
+            style={inputStyle}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(1,154,103,0.5)")}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+          />
+          <p className="text-[10px] mt-1" style={{ color: "var(--z-text-faint)" }}>
+            Usado pelo agente de IA ao responder sobre localização da clínica.
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--z-text-dim)" }}>
+            <span className="flex items-center gap-1.5"><Clock size={11} /> Fuso horário</span>
+          </label>
+          <select
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
+            style={inputStyle}
+          >
+            {TIMEZONES.map((tz) => (
+              <option key={tz} value={tz}>{tz.replace("America/", "").replace(/_/g, " ")}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="pt-1">
+        <SaveButton saving={saving} saved={saved} onClick={handleSave} />
+      </div>
+    </CardShell>
+  );
+}
+
+// ── Tab: Usuários ──────────────────────────────────────────────────────────────
+
+function TabUsuarios({ clinicId }: { clinicId: string }) {
+  const [members, setMembers] = useState<MemberRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("clinic_members")
+      .select("id, role, joined_at, profiles(full_name)")
+      .eq("clinic_id", clinicId)
+      .eq("active", true)
+      .order("joined_at", { ascending: true })
+      .then(({ data }) => {
+        setMembers((data ?? []) as unknown as MemberRow[]);
+        setLoading(false);
+      });
+  }, [clinicId]);
+
+  const roleLabel = (role: string) =>
+    role === "owner" ? "Proprietário" : role === "admin" ? "Admin" : "Membro";
+
+  const roleColor = (role: string) =>
+    role === "owner" ? "#019A67" : role === "admin" ? "#3b82f6" : "var(--z-text-dim)";
+
+  return (
+    <CardShell>
+      <SectionHeader icon={<Users size={15} />} title="Usuários da Clínica" subtitle="Membros com acesso ao sistema" />
+
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <RefreshCw size={16} className="animate-spin" style={{ color: "var(--z-text-dim)" }} />
+        </div>
+      ) : members.length === 0 ? (
+        <p className="text-sm text-center py-6" style={{ color: "var(--z-text-dim)" }}>Nenhum membro encontrado.</p>
+      ) : (
+        <div className="space-y-2">
+          {members.map((m) => (
+            <div
+              key={m.id}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+              style={{ background: "var(--muted)", border: "1px solid var(--border)" }}
+            >
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white shrink-0"
+                style={{ background: "linear-gradient(135deg, #019A67, #01c47f)" }}
+              >
+                {(m.profiles?.full_name ?? "?").charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate" style={{ color: "var(--z-text)" }}>
+                  {m.profiles?.full_name ?? "—"}
+                </p>
+                {m.joined_at && (
+                  <p className="text-[11px]" style={{ color: "var(--z-text-faint)" }}>
+                    Desde {new Date(m.joined_at).toLocaleDateString("pt-BR")}
+                  </p>
+                )}
+              </div>
+              <span
+                className="text-[11px] font-medium px-2 py-0.5 rounded-lg"
+                style={{ color: roleColor(m.role), background: `${roleColor(m.role)}18` }}
+              >
+                {roleLabel(m.role)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="text-xs" style={{ color: "var(--z-text-faint)" }}>
+        Para convidar ou remover usuários, entre em contato com o administrador da plataforma.
+      </p>
+    </CardShell>
+  );
+}
+
+// ── Tab: Horários ──────────────────────────────────────────────────────────────
+
+function TabHorarios({ clinicId }: { clinicId: string }) {
+  const [hours, setHours] = useState<BusinessHours>({});
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("clinic_settings")
+      .select("business_hours")
+      .eq("clinic_id", clinicId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.business_hours) {
+          // Migrate old [startHour, endHour] format if needed
+          const raw = data.business_hours as Record<string, unknown>;
+          const parsed: BusinessHours = {};
+          for (const [k, v] of Object.entries(raw)) {
+            if (Array.isArray(v) && v.length === 2 && typeof v[0] === "number") {
+              // Old format: [8, 18] → [{start: "08:00", end: "18:00"}]
+              parsed[k as DayKey] = [{ start: `${String(v[0]).padStart(2, "0")}:00`, end: `${String(v[1]).padStart(2, "0")}:00` }];
+            } else if (Array.isArray(v) && v.length > 0 && typeof (v[0] as TimePeriod).start === "string") {
+              parsed[k as DayKey] = v as TimePeriod[];
+            }
+          }
+          setHours(parsed);
+        }
+        setLoading(false);
+      });
+  }, [clinicId]);
+
+  const toggleDay = (day: DayKey) => {
+    setHours((prev) => {
+      const updated = { ...prev };
+      if (updated[day]) {
+        delete updated[day];
+      } else {
+        updated[day] = [{ start: "08:00", end: "18:00" }];
+      }
+      return updated;
+    });
+  };
+
+  const updatePeriod = (day: DayKey, idx: number, patch: Partial<TimePeriod>) => {
+    setHours((prev) => {
+      const periods = (prev[day] ?? []).map((p, i) => i === idx ? { ...p, ...patch } : p);
+      return { ...prev, [day]: periods };
+    });
+  };
+
+  const addPeriod = (day: DayKey) => {
+    setHours((prev) => ({ ...prev, [day]: [...(prev[day] ?? []), { start: "13:00", end: "18:00" }] }));
+  };
+
+  const removePeriod = (day: DayKey, idx: number) => {
+    setHours((prev) => ({ ...prev, [day]: (prev[day] ?? []).filter((_, i) => i !== idx) }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    await supabase
+      .from("clinic_settings")
+      .update({ business_hours: hours as import("@/lib/database.types").Json, updated_at: new Date().toISOString() })
+      .eq("clinic_id", clinicId);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  return (
+    <CardShell>
+      <SectionHeader icon={<CalendarDays size={15} />} title="Horários de Funcionamento" subtitle="Configure os dias e intervalos de atendimento" />
+
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <RefreshCw size={16} className="animate-spin" style={{ color: "var(--z-text-dim)" }} />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {DAYS.map(({ key, label }) => {
+            const active = !!hours[key];
+            const periods = hours[key] ?? [];
+            return (
+              <div
+                key={key}
+                className="rounded-xl p-3 transition-all"
+                style={{
+                  background: active ? "rgba(1,154,103,0.06)" : "var(--muted)",
+                  border: `1px solid ${active ? "rgba(1,154,103,0.15)" : "var(--border)"}`,
+                }}
+              >
+                {/* Row: toggle + day name */}
+                <div className="flex items-center gap-3 mb-2">
+                  <button
+                    onClick={() => toggleDay(key)}
+                    className="w-8 h-4 rounded-full transition-all shrink-0 relative"
+                    style={{ background: active ? "#019A67" : "rgba(255,255,255,0.1)" }}
+                  >
+                    <div
+                      className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all"
+                      style={{ left: active ? "calc(100% - 14px)" : "2px", boxShadow: "0 1px 4px rgba(0,0,0,0.3)" }}
+                    />
+                  </button>
+                  <span className="text-sm font-medium w-20 shrink-0" style={{ color: active ? "var(--z-text)" : "var(--z-text-dim)" }}>
+                    {label}
+                  </span>
+                  {!active && <span className="text-xs ml-auto" style={{ color: "var(--z-text-faint)" }}>Fechado</span>}
+                </div>
+
+                {/* Periods */}
+                {active && (
+                  <div className="ml-11 space-y-1.5">
+                    {periods.map((period, pi) => (
+                      <div key={pi} className="flex items-center gap-2">
+                        <Clock size={11} className="shrink-0" style={{ color: "var(--z-text-dim)" }} />
+                        <input
+                          type="time"
+                          value={period.start}
+                          onChange={(e) => updatePeriod(key, pi, { start: e.target.value })}
+                          className="text-xs outline-none rounded-lg px-2 py-1.5 flex-1"
+                          style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text)" }}
+                        />
+                        <span className="text-xs" style={{ color: "var(--z-text-faint)" }}>–</span>
+                        <input
+                          type="time"
+                          value={period.end}
+                          onChange={(e) => updatePeriod(key, pi, { end: e.target.value })}
+                          className="text-xs outline-none rounded-lg px-2 py-1.5 flex-1"
+                          style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text)" }}
+                        />
+                        {pi > 0 ? (
+                          <button
+                            onClick={() => removePeriod(key, pi)}
+                            className="w-6 h-6 rounded-lg flex items-center justify-center transition-colors"
+                            style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text-dim)" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = "#e05555")}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--z-text-dim)")}
+                          >
+                            <X size={11} />
+                          </button>
+                        ) : (
+                          <div className="w-6" />
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => addPeriod(key)}
+                      className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg transition-colors mt-0.5"
+                      style={{ color: "#019A67", background: "rgba(1,154,103,0.07)", border: "1px dashed rgba(1,154,103,0.3)" }}
+                    >
+                      <Plus size={10} /> add break
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="pt-1">
+        <SaveButton saving={saving} saved={saved} onClick={handleSave} />
+      </div>
+    </CardShell>
+  );
+}
+
+// ── Tab: Tipos de Consulta ─────────────────────────────────────────────────────
+
+type TypeForm = { name: string; duration_minutes: number; color: string };
+
+function TabTipos({ clinicId }: { clinicId: string }) {
+  const [types, setTypes] = useState<AppointmentType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<string | null>(null); // id or "new"
+  const [form, setForm] = useState<TypeForm>({ name: "", duration_minutes: 30, color: "#019A67" });
+  const [saving, setSaving] = useState(false);
+
+  const load = () => {
+    supabase
+      .from("appointment_types")
+      .select("*")
+      .eq("clinic_id", clinicId)
+      .eq("active", true)
+      .order("name")
+      .then(({ data }) => {
+        setTypes(data ?? []);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => { load(); }, [clinicId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const openNew = () => {
+    setForm({ name: "", duration_minutes: 30, color: "#019A67" });
+    setEditing("new");
+  };
+
+  const openEdit = (t: AppointmentType) => {
+    setForm({ name: t.name, duration_minutes: t.duration_minutes, color: t.color });
+    setEditing(t.id);
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    if (editing === "new") {
+      await supabase.from("appointment_types").insert({
+        clinic_id: clinicId,
+        name: form.name.trim(),
+        duration_minutes: form.duration_minutes,
+        color: form.color,
+      });
+    } else if (editing) {
+      await supabase.from("appointment_types").update({
+        name: form.name.trim(),
+        duration_minutes: form.duration_minutes,
+        color: form.color,
+      }).eq("id", editing);
+    }
+    setSaving(false);
+    setEditing(null);
+    load();
+  };
+
+  const handleDelete = async (id: string) => {
+    await supabase.from("appointment_types").update({ active: false }).eq("id", id);
+    setTypes((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const inputStyle = { background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text)" };
+
+  return (
+    <CardShell>
+      <div className="flex items-center justify-between">
+        <SectionHeader icon={<Stethoscope size={15} />} title="Tipos de Consulta" subtitle="Categorias e durações de atendimento" />
+        <motion.button
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+          onClick={openNew}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-white"
+          style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}
+        >
+          <Plus size={13} />
+          Novo tipo
+        </motion.button>
+      </div>
+
+      {/* Inline form */}
+      <AnimatePresence>
+        {editing && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="rounded-xl p-4 space-y-3"
+            style={{ background: "rgba(1,154,103,0.04)", border: "1px solid rgba(1,154,103,0.2)" }}
+          >
+            <p className="text-xs font-medium" style={{ color: "#019A67" }}>
+              {editing === "new" ? "Novo tipo de consulta" : "Editar tipo"}
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "var(--z-text-dim)" }}>Nome</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Consulta, Retorno..."
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                  style={inputStyle}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(1,154,103,0.5)")}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+                />
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "var(--z-text-dim)" }}>Duração (min)</label>
+                <input
+                  type="number"
+                  min={5}
+                  step={5}
+                  value={form.duration_minutes}
+                  onChange={(e) => setForm((f) => ({ ...f, duration_minutes: parseInt(e.target.value) || 30 }))}
+                  className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                  style={inputStyle}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(1,154,103,0.5)")}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs mb-1.5" style={{ color: "var(--z-text-dim)" }}>Cor</label>
+              <div className="flex items-center gap-2 flex-wrap">
+                {COLOR_PRESETS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setForm((f) => ({ ...f, color: c }))}
+                    className="w-6 h-6 rounded-full transition-transform"
+                    style={{
+                      background: c,
+                      transform: form.color === c ? "scale(1.25)" : "scale(1)",
+                      outline: form.color === c ? `2px solid ${c}` : "none",
+                      outlineOffset: "2px",
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-60"
+                style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}
+              >
+                {saving ? <RefreshCw size={13} className="animate-spin" /> : <Check size={13} />}
+                Salvar
+              </motion.button>
+              <button
+                onClick={() => setEditing(null)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm"
+                style={{ color: "var(--z-text-dim)" }}
+              >
+                <X size={13} />
+                Cancelar
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <RefreshCw size={16} className="animate-spin" style={{ color: "var(--z-text-dim)" }} />
+        </div>
+      ) : types.length === 0 ? (
+        <p className="text-sm text-center py-6" style={{ color: "var(--z-text-dim)" }}>
+          Nenhum tipo de consulta cadastrado.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {types.map((t) => (
+            <div
+              key={t.id}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+              style={{ background: "var(--muted)", border: "1px solid var(--border)" }}
+            >
+              <div className="w-3 h-3 rounded-full shrink-0" style={{ background: t.color }} />
+              <span className="text-sm flex-1" style={{ color: "var(--z-text)" }}>{t.name}</span>
+              <span className="text-xs" style={{ color: "var(--z-text-dim)" }}>{t.duration_minutes} min</span>
+              <div className="flex items-center gap-1 ml-2">
+                <button
+                  onClick={() => openEdit(t)}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+                  style={{ color: "var(--z-text-dim)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#019A67")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "var(--z-text-dim)")}
+                >
+                  <Pencil size={13} />
+                </button>
+                <button
+                  onClick={() => handleDelete(t.id)}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+                  style={{ color: "var(--z-text-dim)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#e05555")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "var(--z-text-dim)")}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </CardShell>
+  );
+}
+
+// ── Tab: WhatsApp ──────────────────────────────────────────────────────────────
+
+function TabWhatsapp({ clinicId }: { clinicId: string }) {
+  void clinicId;
+
+  const { config, loaded: uazapiLoaded, isConfigured } = useUazapiConfig();
   const [status, setStatus] = useState<ConnectionStatus>("idle");
   const [instance, setInstance] = useState<UazapiInstance | null>(null);
   const [error, setError] = useState("");
   const [qrCode, setQrCode] = useState("");
-  const [pairCode, setPairCode] = useState("");
-  const [phoneInput, setPhoneInput] = useState("");
-  const [connectMode, setConnectMode] = useState<"qr" | "phone">("qr");
-  const [copied, setCopied] = useState(false);
   const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
 
-  // Load clinic data
-  useEffect(() => {
-    if (!clinicLoaded) return;
-    supabase
-      .from("clinics")
-      .select("name, timezone")
-      .eq("id", clinicId)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setClinicName(data.name);
-          setClinicTimezone(data.timezone ?? "America/Sao_Paulo");
-        }
-      });
-
-    // Load AI settings
-    supabase
-      .from("clinic_settings")
-      .select("ai_enabled, ai_agent_name, ai_model")
-      .eq("clinic_id", clinicId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setAiEnabled(data.ai_enabled);
-          setAiAgentName(data.ai_agent_name ?? "Assistente");
-          setAiModel(data.ai_model ?? "");
-        }
-        setAiLoaded(true);
-      });
-
-    // Load conversation count (last 24h)
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    supabase
-      .from("ai_conversation_messages")
-      .select("session_id", { count: "exact", head: true })
-      .eq("clinic_id", clinicId)
-      .gte("created_at", since)
-      .then(({ count }) => setAiConvCount(count ?? 0));
-  }, [clinicId, clinicLoaded]);
-
-  const handleToggleAi = async () => {
-    setAiToggling(true);
-    const newEnabled = !aiEnabled;
-    setAiEnabled(newEnabled);
-    await supabase
-      .from("clinic_settings")
-      .update({ ai_enabled: newEnabled, updated_at: new Date().toISOString() })
-      .eq("clinic_id", clinicId);
-    setAiToggling(false);
-  };
-
-  // Load UAZAPI form when config is loaded
-  useEffect(() => {
-    if (uazapiLoaded) {
-      setForm({ serverUrl: config.serverUrl, instanceToken: config.instanceToken });
-    }
-  }, [uazapiLoaded, config]);
-
-  // Auto-check status when config is loaded
   useEffect(() => {
     if (isConfigured) checkStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uazapiLoaded]);
 
-  // Cleanup polling
   useEffect(() => {
     return () => { if (pollInterval) clearInterval(pollInterval); };
   }, [pollInterval]);
 
-  const handleSaveClinic = async () => {
-    if (!clinicName.trim()) return;
-    setSavingClinic(true);
-    await supabase.from("clinics").update({
-      name: clinicName.trim(),
-      timezone: clinicTimezone,
-      updated_at: new Date().toISOString(),
-    }).eq("id", clinicId);
-    setSavingClinic(false);
-    setClinicSaved(true);
-    setTimeout(() => setClinicSaved(false), 2500);
+  const stopPolling = () => {
+    if (pollInterval) { clearInterval(pollInterval); setPollInterval(null); }
   };
 
-  const checkStatus = async (cfg = config) => {
-    if (!cfg.serverUrl || !cfg.instanceToken) return;
+  const checkStatus = async () => {
+    if (!isConfigured) return;
     setStatus("loading");
     setError("");
     try {
-      const res = await uazapi.getStatus(cfg);
+      const res = await uazapi.getStatus();
       setInstance(res.instance);
       if (res.status.connected) {
         setStatus("connected");
         setQrCode("");
-        setPairCode("");
         stopPolling();
       } else if (res.instance?.status === "connecting") {
         setStatus("connecting");
         setQrCode(res.instance.qrcode || "");
-        setPairCode(res.instance.paircode || "");
       } else {
         setStatus("disconnected");
       }
@@ -181,33 +744,36 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSaveUazapi = async () => {
-    const trimmed = {
-      serverUrl: form.serverUrl.trim().replace(/\/$/, ""),
-      instanceToken: form.instanceToken.trim(),
-    };
-    await save(trimmed);
-    await checkStatus(trimmed);
-  };
-
   const handleConnect = async () => {
     setStatus("connecting");
     setError("");
     setQrCode("");
-    setPairCode("");
     try {
-      const res = await uazapi.connect(
-        config,
-        connectMode === "phone" && phoneInput ? phoneInput : undefined
-      );
+      // Call /instance/connect without phone → gets QR code
+      const res = await uazapi.connect();
       setInstance(res.instance);
       if (res.connected) {
         setStatus("connected");
       } else {
         setStatus("connecting");
         setQrCode(res.instance?.qrcode || "");
-        setPairCode(res.instance?.paircode || "");
-        startPolling();
+        // Poll /instance/status every 4s until connected
+        if (pollInterval) clearInterval(pollInterval);
+        const id = setInterval(async () => {
+          try {
+            const poll = await uazapi.getStatus();
+            if (poll.status.connected) {
+              setStatus("connected");
+              setInstance(poll.instance);
+              setQrCode("");
+              clearInterval(id);
+              setPollInterval(null);
+            } else if (poll.instance?.qrcode && poll.instance.qrcode !== qrCode) {
+              setQrCode(poll.instance.qrcode);
+            }
+          } catch { /* silent */ }
+        }, 4000);
+        setPollInterval(id);
       }
     } catch (e: unknown) {
       setStatus("error");
@@ -217,422 +783,482 @@ export default function SettingsPage() {
 
   const handleDisconnect = async () => {
     try {
-      await uazapi.disconnect(config);
+      await uazapi.disconnect();
       setStatus("disconnected");
       setInstance(null);
       setQrCode("");
-      setPairCode("");
       stopPolling();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro ao desconectar");
     }
   };
 
-  const startPolling = () => {
-    if (pollInterval) clearInterval(pollInterval);
-    const id = setInterval(async () => { await checkStatus(); }, 4000);
-    setPollInterval(id);
-  };
-
-  const stopPolling = () => {
-    if (pollInterval) { clearInterval(pollInterval); setPollInterval(null); }
-  };
-
-  const copyToken = () => {
-    navigator.clipboard.writeText(instance?.token || "");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const statusConfig: Record<ConnectionStatus, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
-    idle:         { label: "Não verificado",          color: "var(--z-text-dim)", bg: "var(--muted)", icon: <Wifi size={14} /> },
-    loading:      { label: "Verificando...",           color: "#f59e0b", bg: "rgba(245,158,11,0.1)", icon: <RefreshCw size={14} className="animate-spin" /> },
-    connected:    { label: "Conectado",                color: "#019A67", bg: "rgba(1,154,103,0.1)", icon: <CheckCircle2 size={14} /> },
-    connecting:   { label: "Aguardando escaneamento", color: "#f59e0b", bg: "rgba(245,158,11,0.1)", icon: <RefreshCw size={14} className="animate-spin" /> },
-    disconnected: { label: "Desconectado",             color: "var(--z-text-dim)", bg: "var(--muted)", icon: <WifiOff size={14} /> },
-    error:        { label: "Erro de conexão",          color: "var(--destructive)", bg: "rgba(220,38,38,0.08)", icon: <AlertCircle size={14} /> },
+  const statusConfig: Record<ConnectionStatus, { label: string; color: string; bg: string; dot: string }> = {
+    idle:         { label: "Não verificado",         color: "var(--z-text-dim)", bg: "var(--muted)",                    dot: "#6b7280" },
+    loading:      { label: "Verificando...",          color: "#f59e0b",           bg: "rgba(245,158,11,0.08)",            dot: "#f59e0b" },
+    connected:    { label: "Conectado",               color: "#019A67",           bg: "rgba(1,154,103,0.08)",             dot: "#019A67" },
+    connecting:   { label: "Aguardando QR Code",      color: "#f59e0b",           bg: "rgba(245,158,11,0.08)",            dot: "#f59e0b" },
+    disconnected: { label: "Desconectado",            color: "var(--z-text-dim)", bg: "var(--muted)",                    dot: "#6b7280" },
+    error:        { label: "Erro de conexão",         color: "var(--destructive)", bg: "rgba(220,38,38,0.06)",           dot: "#e05555" },
   };
 
   const sc = statusConfig[status];
+
+  if (!isConfigured && uazapiLoaded) {
+    return (
+      <CardShell>
+        <SectionHeader icon={<Wifi size={15} />} title="WhatsApp" subtitle="Status da conexão com o WhatsApp" />
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
+          <AlertCircle size={15} style={{ color: "var(--z-text-dim)", flexShrink: 0 }} />
+          <p className="text-sm" style={{ color: "var(--z-text-dim)" }}>
+            A instância UAZAPI ainda não foi configurada. Entre em contato com o administrador da plataforma.
+          </p>
+        </div>
+      </CardShell>
+    );
+  }
+
+  return (
+    <CardShell>
+      <SectionHeader icon={<Wifi size={15} />} title="WhatsApp" subtitle="Status da conexão com o WhatsApp" />
+
+      {/* Status badge */}
+      <div
+        className="flex items-center justify-between px-4 py-3 rounded-xl"
+        style={{ background: sc.bg, border: `1px solid ${sc.color}30` }}
+      >
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-2 h-2 rounded-full shrink-0"
+            style={{
+              background: sc.dot,
+              boxShadow: status === "connected" ? `0 0 6px ${sc.dot}80` : "none",
+              animation: status === "loading" || status === "connecting" ? "pulse 1.5s ease-in-out infinite" : "none",
+            }}
+          />
+          <span className="text-sm font-medium" style={{ color: sc.color }}>{sc.label}</span>
+        </div>
+
+        {/* Refresh button */}
+        <button
+          onClick={checkStatus}
+          disabled={status === "loading"}
+          className="w-7 h-7 rounded-lg flex items-center justify-center transition-all disabled:opacity-40"
+          style={{ color: "var(--z-text-dim)" }}
+          title="Verificar status"
+        >
+          <RefreshCw size={13} className={status === "loading" ? "animate-spin" : ""} />
+        </button>
+      </div>
+
+      {/* Error */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm"
+            style={{ background: "rgba(220,38,38,0.06)", color: "var(--destructive)", border: "1px solid rgba(220,38,38,0.15)" }}
+          >
+            <AlertCircle size={14} className="shrink-0" />
+            {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Connected: profile card */}
+      <AnimatePresence>
+        {status === "connected" && instance && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center gap-4 p-4 rounded-xl"
+            style={{ background: "rgba(1,154,103,0.05)", border: "1px solid rgba(1,154,103,0.15)" }}
+          >
+            {instance.profilePicUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={instance.profilePicUrl} alt="Profile" className="w-11 h-11 rounded-full shrink-0 object-cover" />
+            ) : (
+              <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0"
+                style={{ background: "linear-gradient(135deg, #019A67, #01c47f)" }}>
+                WA
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate" style={{ color: "var(--z-text)" }}>
+                {instance.profileName || instance.name}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--z-text-dim)" }}>
+                {instance.isBusiness ? "WhatsApp Business" : "WhatsApp"}
+                {instance.owner ? ` · ${instance.owner}` : ""}
+              </p>
+            </div>
+            <button
+              onClick={handleDisconnect}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium shrink-0 transition-all"
+              style={{ background: "rgba(220,38,38,0.06)", color: "var(--destructive)", border: "1px solid rgba(220,38,38,0.15)" }}
+            >
+              <WifiOff size={13} />
+              Desconectar
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Disconnected: connect button + QR */}
+      <AnimatePresence>
+        {status === "disconnected" && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleConnect}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white"
+              style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 16px rgba(1,154,103,0.25)" }}
+            >
+              <Wifi size={14} />
+              Conectar via QR Code
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Connecting: QR code */}
+      <AnimatePresence>
+        {status === "connecting" && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center gap-3 py-4"
+          >
+            {qrCode ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={qrCode}
+                  alt="QR Code WhatsApp"
+                  className="w-52 h-52 rounded-xl"
+                  style={{ border: "3px solid rgba(1,154,103,0.25)" }}
+                />
+                <p className="text-xs text-center" style={{ color: "var(--z-text-dim)" }}>
+                  Abra o WhatsApp no celular e escaneie o QR code
+                </p>
+                <p className="text-[10px]" style={{ color: "var(--z-text-faint)" }}>
+                  Verificando automaticamente a cada 4 segundos…
+                </p>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 py-6" style={{ color: "var(--z-text-dim)" }}>
+                <RefreshCw size={15} className="animate-spin" />
+                <span className="text-sm">Gerando QR code…</span>
+              </div>
+            )}
+            <button
+              onClick={() => { setStatus("disconnected"); setQrCode(""); stopPolling(); }}
+              className="text-xs px-3 py-1.5 rounded-lg transition-all"
+              style={{ color: "var(--z-text-dim)", background: "var(--muted)", border: "1px solid var(--border)" }}
+            >
+              Cancelar
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </CardShell>
+  );
+}
+
+// ── Tab Google Calendar ────────────────────────────────────────────────────────
+
+type DoctorGoogleStatus = { connected: boolean; email: string | null };
+
+function TabGoogleCalendar({ clinicId }: { clinicId: string }) {
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [statuses, setStatuses] = useState<Record<string, DoctorGoogleStatus>>({});
+  const [loading, setLoading] = useState(true);
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
+  const [syncResult, setSyncResult] = useState<Record<string, string>>({});
+
+  const loadDoctors = useCallback(async () => {
+    const { data } = await supabase
+      .from("doctors")
+      .select("*")
+      .eq("clinic_id", clinicId)
+      .eq("active", true)
+      .order("name");
+    const list: Doctor[] = data ?? [];
+    setDoctors(list);
+
+    const entries = await Promise.all(
+      list.map(async (d) => {
+        const res = await fetch(`/api/google-calendar/status?doctor_id=${d.id}`);
+        const s: DoctorGoogleStatus = res.ok ? await res.json() : { connected: false, email: null };
+        return [d.id, s] as const;
+      })
+    );
+    setStatuses(Object.fromEntries(entries));
+    setLoading(false);
+  }, [clinicId]);
+
+  useEffect(() => { loadDoctors(); }, [loadDoctors]);
+
+  const handleConnect = (doctorId: string) => {
+    window.location.href = `/api/google-calendar/connect?doctor_id=${doctorId}&clinic_id=${clinicId}`;
+  };
+
+  const handleDisconnect = async (doctorId: string) => {
+    setDisconnecting(doctorId);
+    await fetch("/api/google-calendar/disconnect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ doctor_id: doctorId, clinic_id: clinicId }),
+    });
+    setStatuses((prev) => ({ ...prev, [doctorId]: { connected: false, email: null } }));
+    setDisconnecting(null);
+  };
+
+  const handleSyncAll = async (doctorId: string) => {
+    setSyncing(doctorId);
+    setSyncResult((prev) => ({ ...prev, [doctorId]: "" }));
+    try {
+      const res = await fetch("/api/google-calendar/sync-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ doctor_id: doctorId, clinic_id: clinicId }),
+      });
+      const data = await res.json() as { total: number; synced: number };
+      setSyncResult((prev) => ({
+        ...prev,
+        [doctorId]: data.synced === 0 ? "Nenhum agendamento pendente" : `${data.synced} de ${data.total} sincronizados`,
+      }));
+    } catch {
+      setSyncResult((prev) => ({ ...prev, [doctorId]: "Erro ao sincronizar" }));
+    }
+    setSyncing(null);
+  };
+
+  return (
+    <CardShell>
+      <SectionHeader icon={<Calendar size={15} />} title="Google Agenda" subtitle="Conecte o Google Calendar de cada médico para sincronizar agendamentos automaticamente." />
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <RefreshCw size={16} className="animate-spin" style={{ color: "var(--z-text-dim)" }} />
+        </div>
+      ) : doctors.length === 0 ? (
+        <p className="text-sm text-center py-6" style={{ color: "var(--z-text-dim)" }}>
+          Nenhum médico cadastrado.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {doctors.map((doc) => {
+            const status = statuses[doc.id];
+            const isConnected = status?.connected ?? false;
+            const isDisconnecting = disconnecting === doc.id;
+            return (
+              <div
+                key={doc.id}
+                className="flex items-center justify-between rounded-xl px-4 py-3"
+                style={{
+                  background: isConnected ? "rgba(1,154,103,0.05)" : "var(--input)",
+                  border: `1px solid ${isConnected ? "rgba(1,154,103,0.2)" : "rgba(1,154,103,0.08)"}`,
+                }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 text-xs font-semibold text-white"
+                    style={{ background: doc.color ?? "#019A67" }}
+                  >
+                    {doc.name[0]}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: "var(--z-text)" }}>
+                      {doc.name}
+                    </p>
+                    {isConnected && status?.email ? (
+                      <p className="text-[11px] truncate" style={{ color: "#019A67" }}>
+                        {status.email}
+                      </p>
+                    ) : (
+                      <p className="text-[11px]" style={{ color: "var(--z-text-dim)" }}>
+                        Não conectado
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {isConnected ? (
+                  <div className="flex items-center gap-2 shrink-0">
+                    {syncResult[doc.id] && (
+                      <span className="text-[10px]" style={{ color: syncResult[doc.id].includes("Erro") ? "#e05555" : "#019A67" }}>
+                        {syncResult[doc.id]}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => handleSyncAll(doc.id)}
+                      disabled={syncing === doc.id}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all disabled:opacity-60"
+                      style={{ color: "#019A67", background: "rgba(1,154,103,0.08)", border: "1px solid rgba(1,154,103,0.2)" }}
+                      title="Sincronizar agendamentos futuros pendentes"
+                    >
+                      <RefreshCw size={11} className={syncing === doc.id ? "animate-spin" : ""} />
+                      Sincronizar
+                    </button>
+                    <button
+                      onClick={() => handleDisconnect(doc.id)}
+                      disabled={isDisconnecting}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all disabled:opacity-60"
+                      style={{ color: "#e05555", background: "rgba(224,85,85,0.08)", border: "1px solid rgba(224,85,85,0.15)" }}
+                    >
+                      {isDisconnecting ? <RefreshCw size={11} className="animate-spin" /> : <Link2Off size={11} />}
+                      Desconectar
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleConnect(doc.id)}
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all"
+                    style={{ color: "#019A67", background: "rgba(1,154,103,0.08)", border: "1px solid rgba(1,154,103,0.2)" }}
+                  >
+                    <Link2 size={11} />
+                    Conectar Google
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </CardShell>
+  );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────────
+
+function SettingsContent() {
+  const { clinicId, loaded: clinicLoaded } = useClinic();
+  const [activeTab, setActiveTab] = useState<Tab>("perfil");
+  const searchParams = useSearchParams();
+
+  // Show feedback toast when returning from Google OAuth
+  const googleParam = searchParams.get("google");
+  const [googleToast, setGoogleToast] = useState<string | null>(
+    googleParam === "connected" ? "Google Calendar conectado com sucesso!" :
+    googleParam === "error" ? "Erro ao conectar Google Calendar. Tente novamente." :
+    googleParam === "no_refresh_token" ? "Reconecte sua conta Google (revogue o acesso e tente novamente)." :
+    null
+  );
+
+  useEffect(() => {
+    if (googleToast) {
+      const t = setTimeout(() => setGoogleToast(null), 5000);
+      // Switch to google tab if connected
+      if (googleParam === "connected") setActiveTab("google");
+      return () => clearTimeout(t);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (googleParam) {
+      // Clean up URL without reload
+      const url = new URL(window.location.href);
+      url.searchParams.delete("google");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
+
+  if (!clinicLoaded) {
+    return (
+      <div className="p-6 flex items-center justify-center py-20">
+        <RefreshCw size={18} className="animate-spin" style={{ color: "var(--z-text-dim)" }} />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-2xl space-y-6">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-xl" style={{ color: "var(--z-text)", fontWeight: 500 }}>Configurações</h1>
-        <p className="text-sm mt-0.5" style={{ color: "var(--z-text-dim)" }}>
-          Gerencie as configurações da sua clínica
-        </p>
+        <p className="text-sm mt-0.5" style={{ color: "var(--z-text-dim)" }}>Gerencie as configurações da sua clínica</p>
       </motion.div>
 
-      {/* Clinic profile card */}
+      {/* Tab bar */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="rounded-2xl p-6 space-y-5"
+        transition={{ delay: 0.04 }}
+        className="flex items-center gap-1 p-1 rounded-2xl w-fit"
         style={{ background: "var(--surface-1)", border: "1px solid var(--border)", boxShadow: "var(--z-shadow)" }}
       >
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(1,154,103,0.1)", border: "1px solid rgba(1,154,103,0.2)" }}>
-            <Building2 size={15} style={{ color: "#019A67" }} />
-          </div>
-          <div>
-            <h2 className="text-sm font-medium" style={{ color: "var(--z-text)" }}>Perfil da Clínica</h2>
-            <p className="text-xs mt-0.5" style={{ color: "var(--z-text-dim)" }}>Nome e configurações da sua clínica</p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--z-text-dim)" }}>Nome da clínica</label>
-            <input
-              type="text"
-              placeholder="Nome da clínica"
-              value={clinicName}
-              onChange={(e) => setClinicName(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-              style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text)" }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(1,154,103,0.5)")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--z-text-dim)" }}>
-              <span className="flex items-center gap-1.5"><Clock size={11} /> Fuso horário</span>
-            </label>
-            <select
-              value={clinicTimezone}
-              onChange={(e) => setClinicTimezone(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-              style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text)" }}
-            >
-              {TIMEZONES.map((tz) => (
-                <option key={tz} value={tz}>{tz.replace("America/", "").replace(/_/g, " ")}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 pt-1">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={handleSaveClinic}
-            disabled={savingClinic}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
-            style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 16px rgba(1,154,103,0.25)" }}
-          >
-            {savingClinic ? <RefreshCw size={14} className="animate-spin" /> : clinicSaved ? <Check size={14} /> : <Save size={14} />}
-            {clinicSaved ? "Salvo!" : "Salvar"}
-          </motion.button>
-        </div>
-      </motion.div>
-
-      {/* UAZAPI Connection card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="rounded-2xl p-6 space-y-5"
-        style={{ background: "var(--surface-1)", border: "1px solid var(--border)", boxShadow: "var(--z-shadow)" }}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-medium" style={{ color: "var(--z-text)" }}>Conexão WhatsApp</h2>
-            <p className="text-xs mt-0.5" style={{ color: "var(--z-text-dim)" }}>
-              Informe o token da sua instância UAZAPI
-            </p>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium" style={{ background: sc.bg, color: sc.color }}>
-            {sc.icon}
-            {sc.label}
-          </div>
-        </div>
-
-        {/* Form fields */}
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--z-text-dim)" }}>URL do servidor</label>
-            <input
-              type="url"
-              placeholder="https://api.seuservidor.com"
-              value={form.serverUrl}
-              onChange={(e) => setForm((f) => ({ ...f, serverUrl: e.target.value }))}
-              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-              style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text)" }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(1,154,103,0.5)")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--z-text-dim)" }}>Token da instância</label>
-            <input
-              type="password"
-              placeholder="Seu token da instância UAZAPI"
-              value={form.instanceToken}
-              onChange={(e) => setForm((f) => ({ ...f, instanceToken: e.target.value }))}
-              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all font-mono"
-              style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text)" }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(1,154,103,0.5)")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-            />
-            <p className="text-[10px] mt-1" style={{ color: "var(--z-text-faint)" }}>
-              Encontre o token na sua instância no painel UAZAPI.{" "}
-              <a href="https://uazapi.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5" style={{ color: "#019A67" }}>
-                Saiba mais <ExternalLink size={10} />
-              </a>
-            </p>
-          </div>
-        </div>
-
-        {/* Error */}
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm"
-              style={{ background: "rgba(220,38,38,0.06)", color: "var(--destructive)", border: "1px solid rgba(220,38,38,0.15)" }}
-            >
-              <AlertCircle size={14} className="shrink-0" />
-              {error}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2 pt-1">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={handleSaveUazapi}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white"
-            style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 16px rgba(1,154,103,0.25)" }}
-          >
-            <Save size={14} />
-            Salvar e verificar
-          </motion.button>
-
+        {TABS.map((tab) => (
           <button
-            onClick={() => checkStatus()}
-            disabled={!isConfigured}
-            className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-all disabled:opacity-40"
-            style={{ background: "var(--secondary)", color: "var(--z-text-dim)", border: "1px solid var(--border)" }}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all"
+            style={
+              activeTab === tab.id
+                ? { background: "rgba(1,154,103,0.1)", color: "#019A67", border: "1px solid rgba(1,154,103,0.2)" }
+                : { color: "var(--z-text-dim)", border: "1px solid transparent" }
+            }
           >
-            <RefreshCw size={14} />
-            Verificar status
+            {tab.icon}
+            {tab.label}
           </button>
-
-          {isConfigured && (
-            <button
-              onClick={() => { clear(); setStatus("idle"); setInstance(null); }}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-all ml-auto"
-              style={{ color: "var(--destructive)" }}
-            >
-              <Trash2 size={14} />
-              Limpar
-            </button>
-          )}
-        </div>
+        ))}
       </motion.div>
 
-      {/* Connected info */}
-      {status === "connected" && instance && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl p-5"
-          style={{ background: "rgba(1,154,103,0.05)", border: "1px solid rgba(1,154,103,0.2)" }}
-        >
-          <div className="flex items-start gap-4">
-            {instance.profilePicUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={instance.profilePicUrl} alt="Profile" className="w-12 h-12 rounded-full shrink-0 object-cover" />
-            ) : (
-              <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold shrink-0" style={{ background: "linear-gradient(135deg, #019A67, #01c47f)" }}>
-                WA
-              </div>
-            )}
-
-            <div className="flex-1 min-w-0">
-              <p className="font-medium" style={{ color: "var(--z-text)" }}>{instance.profileName || instance.name}</p>
-              <p className="text-xs mt-0.5" style={{ color: "var(--z-text-dim)" }}>
-                {instance.isBusiness ? "WhatsApp Business" : "WhatsApp"} · {instance.owner}
-              </p>
-              <div className="flex items-center gap-2 mt-2">
-                <code className="text-[11px] px-2 py-1 rounded-lg font-mono truncate max-w-[200px]" style={{ background: "var(--muted)", color: "var(--z-text-dim)" }}>
-                  {instance.token?.slice(0, 20)}…
-                </code>
-                <button onClick={copyToken} className="w-6 h-6 rounded-md flex items-center justify-center transition-all" style={{ color: copied ? "#019A67" : "var(--z-text-dim)" }}>
-                  {copied ? <Check size={13} /> : <Copy size={13} />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              onClick={handleDisconnect}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs transition-all shrink-0"
-              style={{ background: "rgba(220,38,38,0.06)", color: "var(--destructive)", border: "1px solid rgba(220,38,38,0.15)" }}
-            >
-              <WifiOff size={13} />
-              Desconectar
-            </button>
-          </div>
-        </motion.div>
-      )}
-
-      {/* AI Agent card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="rounded-2xl p-6 space-y-4"
-        style={{ background: "var(--surface-1)", border: "1px solid var(--border)", boxShadow: "var(--z-shadow)" }}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(1,154,103,0.1)", border: "1px solid rgba(1,154,103,0.2)" }}>
-              <Bot size={15} style={{ color: "#019A67" }} />
-            </div>
-            <div>
-              <h2 className="text-sm font-medium" style={{ color: "var(--z-text)" }}>Agente de IA</h2>
-              <p className="text-xs mt-0.5" style={{ color: "var(--z-text-dim)" }}>
-                Responde automaticamente no WhatsApp 24/7
-              </p>
-            </div>
-          </div>
-
-          {aiLoaded && (
-            <button
-              onClick={handleToggleAi}
-              disabled={aiToggling}
-              className="transition-colors disabled:opacity-60"
-            >
-              {aiEnabled
-                ? <ToggleRight size={28} style={{ color: "#019A67" }} />
-                : <ToggleLeft size={28} className="text-z-faint" />}
-            </button>
-          )}
-        </div>
-
-        {/* Status row */}
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-xl"
-          style={{
-            background: aiEnabled ? "rgba(1,154,103,0.06)" : "var(--muted)",
-            border: `1px solid ${aiEnabled ? "rgba(1,154,103,0.2)" : "var(--border)"}`,
-          }}
-        >
-          <div
-            className="w-2 h-2 rounded-full shrink-0"
-            style={{ background: aiEnabled ? "#019A67" : "#6b7280", boxShadow: aiEnabled ? "0 0 6px rgba(1,154,103,0.5)" : "none" }}
-          />
-          <span className="text-xs" style={{ color: aiEnabled ? "#019A67" : "var(--z-text-dim)" }}>
-            {aiEnabled ? "Agente ativo" : "Agente inativo"}
-          </span>
-          {aiAgentName && (
-            <span className="text-xs text-z-faint ml-1">· {aiAgentName}</span>
-          )}
-          {aiConvCount > 0 && (
-            <div className="flex items-center gap-1 ml-auto">
-              <MessageSquare size={11} style={{ color: "#019A67" }} />
-              <span className="text-xs font-medium" style={{ color: "#019A67" }}>{aiConvCount} conversas hoje</span>
-            </div>
-          )}
-        </div>
-
-        {/* Info */}
-        <div className="flex items-start gap-2 text-xs text-z-faint">
-          <Sparkles size={12} style={{ marginTop: 2, flexShrink: 0 }} />
-          <span>
-            {aiModel
-              ? `Modelo: ${aiModel.split("/").pop()}`
-              : "Nenhum modelo configurado"}
-            {" · "}
-            A configuração completa (chave API, modelo, system prompt) está disponível no painel administrativo.
-          </span>
-        </div>
-      </motion.div>
-
-      {/* Connect panel */}
-      {(status === "disconnected" || status === "connecting") && isConfigured && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl p-5 space-y-4"
-          style={{ background: "var(--surface-1)", border: "1px solid var(--border)", boxShadow: "var(--z-shadow)" }}
-        >
-          <h3 className="text-sm font-medium" style={{ color: "var(--z-text)" }}>Conectar ao WhatsApp</h3>
-
-          {/* Mode selector */}
-          <div className="flex items-center p-1 rounded-xl w-fit" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
-            {(["qr", "phone"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setConnectMode(m)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all"
-                style={connectMode === m
-                  ? { background: "var(--surface-1)", color: "#019A67", boxShadow: "var(--z-shadow)" }
-                  : { color: "var(--z-text-dim)" }
-                }
-              >
-                {m === "qr" ? <QrCode size={13} /> : <Phone size={13} />}
-                {m === "qr" ? "QR Code" : "Código telefone"}
-              </button>
-            ))}
-          </div>
-
-          {connectMode === "phone" && (
-            <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--z-text-dim)" }}>Número do WhatsApp (com DDI)</label>
-              <input
-                type="tel"
-                placeholder="5511999999999"
-                value={phoneInput}
-                onChange={(e) => setPhoneInput(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-                style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--z-text)" }}
-              />
-            </div>
-          )}
-
-          {status === "connecting" && qrCode && connectMode === "qr" && (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center gap-3 py-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrCode} alt="QR Code" className="w-52 h-52 rounded-xl" style={{ border: "3px solid rgba(1,154,103,0.2)" }} />
-              <p className="text-xs text-center" style={{ color: "var(--z-text-dim)" }}>Abra o WhatsApp no seu celular e escaneie o QR code</p>
-            </motion.div>
-          )}
-
-          {status === "connecting" && pairCode && connectMode === "phone" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-2 py-4">
-              <p className="text-xs" style={{ color: "var(--z-text-dim)" }}>Código de pareamento</p>
-              <div className="text-3xl font-mono tracking-widest px-6 py-3 rounded-2xl" style={{ background: "rgba(1,154,103,0.08)", border: "1px solid rgba(1,154,103,0.2)", color: "#019A67" }}>
-                {pairCode}
-              </div>
-              <p className="text-xs text-center" style={{ color: "var(--z-text-dim)" }}>
-                No WhatsApp: Dispositivos vinculados → Vincular com número de telefone
-              </p>
-            </motion.div>
-          )}
-
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={handleConnect}
-            disabled={status === "connecting"}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
-            style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 16px rgba(1,154,103,0.25)" }}
+      {/* Google OAuth toast */}
+      <AnimatePresence>
+        {googleToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm"
+            style={{
+              background: googleParam === "connected" ? "rgba(1,154,103,0.1)" : "rgba(224,85,85,0.1)",
+              border: `1px solid ${googleParam === "connected" ? "rgba(1,154,103,0.25)" : "rgba(224,85,85,0.25)"}`,
+              color: googleParam === "connected" ? "#019A67" : "#e05555",
+            }}
           >
-            {status === "connecting" ? <RefreshCw size={14} className="animate-spin" /> : <Wifi size={14} />}
-            {status === "connecting" ? "Aguardando conexão..." : "Conectar"}
-          </motion.button>
+            {googleParam === "connected" ? <Check size={14} /> : <AlertCircle size={14} />}
+            {googleToast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Tab content */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.15 }}
+        >
+          {activeTab === "perfil"   && <TabPerfil          clinicId={clinicId} />}
+          {activeTab === "usuarios" && <TabUsuarios        clinicId={clinicId} />}
+          {activeTab === "horarios" && <TabHorarios        clinicId={clinicId} />}
+          {activeTab === "tipos"    && <TabTipos           clinicId={clinicId} />}
+          {activeTab === "whatsapp" && <TabWhatsapp        clinicId={clinicId} />}
+          {activeTab === "google"   && <TabGoogleCalendar  clinicId={clinicId} />}
         </motion.div>
-      )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-6 flex items-center justify-center py-20">
+        <RefreshCw size={18} className="animate-spin" style={{ color: "var(--z-text-dim)" }} />
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
   );
 }

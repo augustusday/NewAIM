@@ -117,24 +117,27 @@ export async function updateClinicSettings(
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 export async function getAllUsers(): Promise<UserWithClinics[]> {
-  const { data: profiles } = await supabase.from("profiles").select("*");
+  const [profilesRes, membersRes, clinicsRes, emailsRes] = await Promise.all([
+    supabase.from("profiles").select("*"),
+    supabase.from("clinic_members").select("user_id, clinic_id, role"),
+    supabase.from("clinics").select("id, name"),
+    fetch("/api/admin/user-emails").then((r) => r.ok ? r.json() as Promise<{ emails: Record<string, string> }> : { emails: {} }).catch(() => ({ emails: {} })),
+  ]);
 
-  if (!profiles) return [];
+  const profiles = profilesRes.data ?? [];
+  const members  = membersRes.data ?? [];
+  const clinics  = clinicsRes.data ?? [];
+  const emailMap = (emailsRes.emails ?? {}) as Record<string, string>;
 
-  const { data: members } = await supabase
-    .from("clinic_members")
-    .select("user_id, clinic_id, role");
-
-  const { data: clinics } = await supabase.from("clinics").select("id, name");
-  const clinicMap = Object.fromEntries((clinics ?? []).map((c) => [c.id, c.name]));
+  const clinicMap = Object.fromEntries(clinics.map((c) => [c.id, c.name]));
 
   return profiles.map((profile) => {
     const p = profile as Profile;
-    const userMembers = (members ?? []).filter((m) => m.user_id === p.id);
+    const userMembers = members.filter((m) => m.user_id === p.id);
     return {
       ...p,
       is_super_admin: p.is_super_admin,
-      email: null,
+      email: emailMap[p.id] ?? null,
       clinics: userMembers.map((m) => ({
         clinic_id: m.clinic_id,
         clinic_name: clinicMap[m.clinic_id] ?? "—",
@@ -270,8 +273,13 @@ export async function upsertAvailabilityTemplate(data: {
   end_time: string;
   slot_duration_min?: number;
   active?: boolean;
+  time_periods?: { start: string; end: string }[] | null;
 }): Promise<void> {
-  await supabase.from("availability_templates").upsert(data);
+  const payload = {
+    ...data,
+    time_periods: data.time_periods && data.time_periods.length > 1 ? data.time_periods : null,
+  };
+  await supabase.from("availability_templates").upsert(payload);
 }
 
 export async function deleteAvailabilityTemplate(id: string): Promise<void> {
