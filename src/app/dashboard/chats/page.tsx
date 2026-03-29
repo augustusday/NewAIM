@@ -259,6 +259,11 @@ export default function ChatsPage() {
 
   const filteredSessions = sessions
     .filter((s) => {
+      // Drop ghost sessions created by UAZAPI sync: no name, no phone, no messages
+      const hasIdentity = !!(s.wa_contact_name || s.contact?.full_name || s.wa_phone);
+      const hasActivity = !!(s.last_message_text || (s.unread_count ?? 0) > 0);
+      if (!hasIdentity && !hasActivity) return false;
+
       const name = s.wa_contact_name ?? s.contact?.full_name ?? "";
       return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (s.wa_phone ?? "").includes(searchQuery);

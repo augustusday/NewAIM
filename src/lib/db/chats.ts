@@ -19,6 +19,9 @@ export async function getChatSessions(
     query = query.eq("status", filter.status);
   }
 
+  // Exclude ghost rows (no name, no phone, no messages — created by UAZAPI sync for empty chats)
+  query = query.or("wa_contact_name.not.is.null,wa_phone.not.is.null,last_message_text.not.is.null");
+
   const { data, error } = await query;
   if (error) console.error("[getChatSessions]", error.message);
   return (data as unknown as ChatSessionWithContact[]) ?? [];
