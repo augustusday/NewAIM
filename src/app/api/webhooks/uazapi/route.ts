@@ -114,15 +114,22 @@ async function handleMessage(
   if (isGroup) return;
 
   // UAZAPI sends messageType (PascalCase), not type. AudioMessage is the audio value.
-  const msgType = ((message.messageType ?? message.type ?? "text") as string).toLowerCase();
+  const rawMsgType = String(message.messageType ?? message.type ?? "text");
+  const msgType = rawMsgType.toLowerCase();
   const isAudio = msgType === "audiomessage" || msgType === "audio" || msgType === "ptt" || msgType === "myaudio";
+  const isImage = msgType === "imagemessage" || msgType === "image" || msgType === "imagemsg";
   const msgId = (message.messageid ?? message.id) as string | undefined;
-  if (isAudio) console.log(`[webhook] audio detected chatid=${chatid} messageType=${String(message.messageType)} msgId=${msgId}`);
+  // Log ALL non-text message types to help diagnose media detection issues
+  if (msgType !== "text" && msgType !== "extendedtextmessage" && msgType !== "conversation") {
+    console.log(`[webhook] media message chatid=${chatid} rawMessageType="${rawMsgType}" msgId=${msgId} isAudio=${isAudio} isImage=${isImage}`);
+  }
 
   // Text is in `content` field in the actual payload.
   // Guard: for audio/media messages, content may be an object — ensure we only use strings.
   const rawBody = message.content ?? message.text ?? message.caption ?? message.body;
   let body: string | undefined = typeof rawBody === "string" && rawBody.trim() ? rawBody : undefined;
+  // For images without caption, use a placeholder so the flow continues to AI
+  if (isImage && !body) body = "[Imagem]";
 
   const senderName = (
     chat.wa_contactName ?? chat.lead_fullName ?? chat.lead_name ?? chat.name ?? message.senderName
@@ -132,7 +139,7 @@ async function handleMessage(
   const profilePic = (chat.image || chat.imagePreview) as string | undefined;
 
   // ── Upsert chat session ──────────────────────────────────────────────────────
-  const lastMsgText = isAudio ? "🎵 Áudio" : (body || undefined);
+  const lastMsgText = isAudio ? "🎵 Áudio" : isImage ? "📷 Imagem" : (body || undefined);
 
   await supabaseAdmin.rpc("upsert_chat_session", {
     p_clinic_id: clinicId,
@@ -208,10 +215,25 @@ async function handleMessage(
   // ── Debounce: accumulate messages in Redis for 8 seconds ─────────────────────
   const redis = getRedis();
   const sessionKey = `ai_msgs:${clinicId}:${chatid}`;
+  const imageKey = `ai_imgs:${clinicId}:${chatid}`;
   const lockKey = `ai_lock:${clinicId}:${chatid}`;
 
   await redis.rpush(sessionKey, body);
   await redis.expire(sessionKey, 60);
+
+  // ── Download image URL and store in Redis for the agent ──────────────────────
+  if (isImage && msgId && aiSettings?.uazapi_server_url && aiSettings.uazapi_instance_token) {
+    const imageUrl = await downloadImageAsBase64(
+      msgId,
+      aiSettings.uazapi_server_url,
+      aiSettings.uazapi_instance_token
+    );
+    if (imageUrl) {
+      await redis.rpush(imageKey, imageUrl);
+      await redis.expire(imageKey, 60);
+      console.log(`[image-download] chatid=${chatid} url=${imageUrl.slice(0, 80)}`);
+    }
+  }
 
   const locked = await redis.set(lockKey, "1", { nx: true, ex: 15 });
   if (!locked) return;
@@ -224,8 +246,11 @@ async function handleMessage(
     try {
       await new Promise((r) => setTimeout(r, 8000));
 
-      const msgs = await redis.lrange<string>(sessionKey, 0, -1);
-      await redis.del(sessionKey, lockKey);
+      const [msgs, imageUrls] = await Promise.all([
+        redis.lrange<string>(sessionKey, 0, -1),
+        redis.lrange<string>(imageKey, 0, -1),
+      ]);
+      await redis.del(sessionKey, imageKey, lockKey);
 
       if (!msgs || msgs.length === 0) return;
 
@@ -236,6 +261,7 @@ async function handleMessage(
         sessionId: chatid,
         phone: chatPhone,
         newMessages: msgs,
+        imageUrls: imageUrls ?? [],
         supabaseAdmin: admin,
       });
 
@@ -303,6 +329,60 @@ async function transcribeAudio(
     return result.text?.trim() || undefined;
   } catch (err) {
     console.error("[transcribeAudio] error:", err instanceof Error ? err.message : err);
+    return undefined;
+  }
+}
+
+/**
+ * Downloads an image from UAZAPI and returns a base64 data URL.
+ * We use base64 (not a hosted URL) because UAZAPI URLs require authentication
+ * headers that OpenAI Vision cannot send when fetching the image.
+ */
+async function downloadImageAsBase64(
+  msgId: string,
+  serverUrl: string,
+  instanceToken: string
+): Promise<string | undefined> {
+  try {
+    const dlUrl = `${serverUrl.replace(/\/$/, "")}/message/download`;
+
+    // Step 1: ask UAZAPI for the hosted URL (same pattern as audio)
+    const dlRes = await fetch(dlUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json", token: instanceToken },
+      body: JSON.stringify({ id: msgId, return_link: true, return_base64: false, download_quoted: false }),
+    });
+    if (!dlRes.ok) {
+      console.error("[downloadImage] UAZAPI download failed:", dlRes.status);
+      return undefined;
+    }
+    const dlJson = await dlRes.json() as { fileURL?: string; fileUrl?: string; base64?: string; mimetype?: string };
+
+    // If UAZAPI returned base64 directly, use it
+    if (dlJson.base64) {
+      const mime = dlJson.mimetype ?? "image/jpeg";
+      return `data:${mime};base64,${dlJson.base64}`;
+    }
+
+    const fileUrl = dlJson.fileURL ?? dlJson.fileUrl;
+    if (!fileUrl) {
+      console.error("[downloadImage] No fileURL in response:", JSON.stringify(dlJson).slice(0, 200));
+      return undefined;
+    }
+
+    // Step 2: download the binary ourselves and convert to base64 data URL
+    const imgRes = await fetch(fileUrl);
+    if (!imgRes.ok) {
+      console.error("[downloadImage] Failed to fetch image binary:", imgRes.status);
+      return undefined;
+    }
+    const contentType = imgRes.headers.get("content-type") ?? "image/jpeg";
+    const arrayBuffer = await imgRes.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    console.log(`[downloadImage] downloaded ${arrayBuffer.byteLength} bytes mime=${contentType}`);
+    return `data:${contentType};base64,${base64}`;
+  } catch (err) {
+    console.error("[downloadImage] error:", err instanceof Error ? err.message : err);
     return undefined;
   }
 }

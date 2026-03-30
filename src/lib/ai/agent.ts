@@ -94,9 +94,10 @@ export async function runAgent(params: {
   sessionId: string;
   phone: string;
   newMessages: string[];
+  imageUrls?: string[];
   supabaseAdmin: SupabaseClient<Database>;
 }): Promise<string> {
-  const { clinicId, sessionId, phone, newMessages, supabaseAdmin } = params;
+  const { clinicId, sessionId, phone, newMessages, imageUrls, supabaseAdmin } = params;
   const startedAt = Date.now();
 
   const config = await getAiConfig(clinicId);
@@ -193,13 +194,28 @@ ${
     .filter(Boolean)
     .join("\n");
 
+  // Build user message — multimodal if images are present
+  const hasImages = imageUrls && imageUrls.length > 0;
+  const userMessage: OpenAI.ChatCompletionMessageParam = hasImages
+    ? {
+        role: "user",
+        content: [
+          ...imageUrls!.map((url) => ({
+            type: "image_url" as const,
+            image_url: { url },
+          })),
+          { type: "text" as const, text: userContent || "O que há nesta imagem?" },
+        ],
+      }
+    : { role: "user", content: userContent };
+
   const messages: OpenAI.ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
     ...history.map((m): OpenAI.ChatCompletionMessageParam => ({
       role: m.role,
       content: m.content,
     })),
-    { role: "user", content: userContent },
+    userMessage,
   ];
 
   const client = new OpenAI({
