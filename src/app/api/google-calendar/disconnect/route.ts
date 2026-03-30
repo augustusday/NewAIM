@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 function getAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!.trim()
   );
 }
 
@@ -31,14 +31,23 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: member } = await supabase
-    .from("clinic_members")
-    .select("id")
-    .eq("clinic_id", clinic_id)
-    .eq("user_id", user.id)
+  // Allow super admins OR clinic members
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_super_admin")
+    .eq("id", user.id)
     .maybeSingle();
 
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!profile?.is_super_admin) {
+    const { data: member } = await supabase
+      .from("clinic_members")
+      .select("id")
+      .eq("clinic_id", clinic_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const admin = getAdmin();
   await admin.from("doctor_google_tokens").delete().eq("doctor_id", doctor_id);
