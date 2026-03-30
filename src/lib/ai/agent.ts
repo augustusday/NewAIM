@@ -196,6 +196,11 @@ ${
 
   // Build user message — multimodal if images are present
   const hasImages = imageUrls && imageUrls.length > 0;
+  // When the only text is the placeholder, replace with a meaningful vision prompt
+  const textForModel = (hasImages && (!userContent || userContent.trim() === "[Imagem]"))
+    ? "O paciente enviou uma imagem. Analise e responda de forma adequada ao contexto da clínica."
+    : userContent;
+
   const userMessage: OpenAI.ChatCompletionMessageParam = hasImages
     ? {
         role: "user",
@@ -204,7 +209,7 @@ ${
             type: "image_url" as const,
             image_url: { url },
           })),
-          { type: "text" as const, text: userContent || "O que há nesta imagem?" },
+          { type: "text" as const, text: textForModel },
         ],
       }
     : { role: "user", content: userContent };
@@ -227,19 +232,45 @@ ${
   let iteration = 0;
   let stepIndex = 0;
 
+  // Track whether vision was downgraded to text after a model error
+  let visionDowngraded = false;
+
   try {
     // ReAct loop
     while (iteration < MAX_ITERATIONS) {
       iteration++;
       const llmStart = Date.now();
 
-      const response = await client.chat.completions.create({
-        model: config.model,
-        messages,
-        tools: tools as OpenAI.ChatCompletionTool[],
-        tool_choice: "auto",
-        temperature: 0.4,
-      });
+      let response: Awaited<ReturnType<typeof client.chat.completions.create>>;
+      try {
+        response = await client.chat.completions.create({
+          model: config.model,
+          messages,
+          tools: tools as OpenAI.ChatCompletionTool[],
+          tool_choice: "auto",
+          temperature: 0.4,
+        });
+      } catch (visionErr) {
+        // If the model doesn't support vision, downgrade to text-only and retry once
+        if (hasImages && !visionDowngraded) {
+          visionDowngraded = true;
+          console.warn(`[agent] Vision not supported by model ${config.model}, falling back to text-only`);
+          // Replace multimodal user message with plain text
+          const lastUserIdx = messages.findLastIndex((m) => m.role === "user");
+          if (lastUserIdx !== -1) {
+            messages[lastUserIdx] = { role: "user", content: textForModel };
+          }
+          response = await client.chat.completions.create({
+            model: config.model,
+            messages,
+            tools: tools as OpenAI.ChatCompletionTool[],
+            tool_choice: "auto",
+            temperature: 0.4,
+          });
+        } else {
+          throw visionErr;
+        }
+      }
 
       const llmDuration = Date.now() - llmStart;
       const choice = response.choices[0];

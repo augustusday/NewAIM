@@ -155,6 +155,8 @@ interface Message {
   type?: "text" | "audio" | "image" | "document" | "video";
   audioUrl?: string;   // loaded from /message/download
   audioLoading?: boolean;
+  imageUrl?: string;   // loaded from /message/download
+  imageLoading?: boolean;
   timestamp?: number;
 }
 
@@ -309,6 +311,9 @@ export default function ChatsPage() {
             || msgType === "myaudio" || msgType === "audiomessage"
             || msgType.includes("audio") || msgType.includes("ptt");
 
+          const isImage = msgType === "image" || msgType === "imagemessage" || msgType === "imagemsg"
+            || msgType.includes("image");
+
           const rawText = message.text ?? message.content ?? message.caption ?? message.body ?? message.message ?? "";
           const text = typeof rawText === "string" ? rawText : "";
 
@@ -320,21 +325,24 @@ export default function ChatsPage() {
           const rawTs: number = message.messageTimestamp ?? message.timestamp ?? message.time ?? 0;
           const ts = rawTs > 1e12 ? rawTs : rawTs * 1000;
 
+          const msgTypeResolved: Message["type"] = isAudio ? "audio" : isImage ? "image" : "text";
+
           return {
             id: message.id ?? message.messageid ?? Math.random().toString(),
             rawMsgId,
-            text: isAudio ? "🎵 Áudio" : text,
+            text: isAudio ? "🎵 Áudio" : isImage ? (text || "📷 Imagem") : text,
             time: ts
               ? new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
               : "",
             fromMe: Boolean(message.fromMe ?? message.from_me),
             status: "read" as const,
-            type: isAudio ? "audio" : ("text" as Message["type"]),
+            type: msgTypeResolved,
             audioLoading: isAudio,
+            imageLoading: isImage,
             timestamp: ts,
           };
         })
-        .filter((message) => message.type === "audio" || message.text.trim())
+        .filter((message) => message.type === "audio" || message.type === "image" || message.text.trim())
         .sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
 
       if (requestId !== messageRequestRef.current || selectedSessionRef.current?.wa_chat_id !== session.wa_chat_id) {
@@ -395,6 +403,67 @@ export default function ChatsPage() {
       } else if (parsedMessages.some((message) => message.type === "audio")) {
         setMessages((prev) =>
           prev.map((message) => message.type === "audio" ? { ...message, audioLoading: false } : message)
+        );
+      }
+
+      // ── Load image URLs ─────────────────────────────────────────────────────────
+      const imageMessages = parsedMessages.filter((message) => message.type === "image" && message.rawMsgId);
+      if (imageMessages.length > 0) {
+        const results = await Promise.allSettled(
+          imageMessages.map(async (message) => {
+            const res = await fetch("/api/uazapi", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                path: "/message/download",
+                method: "POST",
+                body: { id: message.rawMsgId, return_link: true, return_base64: false },
+              }),
+            });
+            const json = await res.json() as { fileURL?: string; fileUrl?: string };
+            const url = json.fileURL ?? json.fileUrl ?? null;
+            if (url) return { id: message.id, url };
+
+            // fallback: base64
+            const res2 = await fetch("/api/uazapi", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                path: "/message/download",
+                method: "POST",
+                body: { id: message.rawMsgId, return_base64: true, return_link: false },
+              }),
+            });
+            const json2 = await res2.json() as { base64Data?: string; mimetype?: string };
+            if (json2.base64Data) {
+              const mime = json2.mimetype ?? "image/jpeg";
+              return { id: message.id, url: `data:${mime};base64,${json2.base64Data}` };
+            }
+            return { id: message.id, url: null };
+          })
+        );
+
+        if (requestId !== messageRequestRef.current || selectedSessionRef.current?.wa_chat_id !== session.wa_chat_id) {
+          return;
+        }
+
+        const urlMap = new Map<string, string>();
+        results.forEach((result) => {
+          if (result.status === "fulfilled" && result.value.url) {
+            urlMap.set(result.value.id, result.value.url);
+          }
+        });
+
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.type === "image"
+              ? { ...message, imageUrl: urlMap.get(message.id) ?? undefined, imageLoading: false }
+              : message
+          )
+        );
+      } else if (parsedMessages.some((message) => message.type === "image")) {
+        setMessages((prev) =>
+          prev.map((message) => message.type === "image" ? { ...message, imageLoading: false } : message)
         );
       }
     } catch {
@@ -862,6 +931,27 @@ export default function ChatsPage() {
                               <VoicePlayer src={msg.audioUrl} fromMe={msg.fromMe} />
                             ) : (
                               <p className="leading-relaxed opacity-70 italic text-xs">🎵 Áudio (expirado ou indisponível)</p>
+                            )
+                          ) : msg.type === "image" ? (
+                            msg.imageLoading ? (
+                              <div className="flex items-center gap-2 py-1" style={{ minWidth: "160px" }}>
+                                <RefreshCw size={12} className="animate-spin shrink-0" style={{ color: msg.fromMe ? "rgba(255,255,255,0.7)" : "#019A67" }} />
+                                <span className="text-xs opacity-70">Carregando imagem...</span>
+                              </div>
+                            ) : msg.imageUrl ? (
+                              <div>
+                                <img
+                                  src={msg.imageUrl}
+                                  alt="Imagem"
+                                  className="rounded-xl max-w-full"
+                                  style={{ maxHeight: "260px", objectFit: "contain", display: "block" }}
+                                />
+                                {msg.text && msg.text !== "📷 Imagem" && (
+                                  <p className="leading-relaxed mt-1 text-xs opacity-90">{msg.text}</p>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="leading-relaxed opacity-70 italic text-xs">📷 Imagem (expirada ou indisponível)</p>
                             )
                           ) : (
                             <p className="leading-relaxed">{msg.text}</p>

@@ -215,24 +215,16 @@ async function handleMessage(
   // ── Debounce: accumulate messages in Redis for 8 seconds ─────────────────────
   const redis = getRedis();
   const sessionKey = `ai_msgs:${clinicId}:${chatid}`;
-  const imageKey = `ai_imgs:${clinicId}:${chatid}`;
+  const imageIdKey = `ai_imgids:${clinicId}:${chatid}`; // stores msgIds, NOT base64 (avoids Redis size limits)
   const lockKey = `ai_lock:${clinicId}:${chatid}`;
 
   await redis.rpush(sessionKey, body);
   await redis.expire(sessionKey, 60);
 
-  // ── Download image URL and store in Redis for the agent ──────────────────────
-  if (isImage && msgId && aiSettings?.uazapi_server_url && aiSettings.uazapi_instance_token) {
-    const imageUrl = await downloadImageAsBase64(
-      msgId,
-      aiSettings.uazapi_server_url,
-      aiSettings.uazapi_instance_token
-    );
-    if (imageUrl) {
-      await redis.rpush(imageKey, imageUrl);
-      await redis.expire(imageKey, 60);
-      console.log(`[image-download] chatid=${chatid} url=${imageUrl.slice(0, 80)}`);
-    }
+  // Store only the UAZAPI message ID — image will be downloaded in after() to avoid large Redis payloads
+  if (isImage && msgId) {
+    await redis.rpush(imageIdKey, msgId);
+    await redis.expire(imageIdKey, 60);
   }
 
   const locked = await redis.set(lockKey, "1", { nx: true, ex: 15 });
@@ -246,22 +238,34 @@ async function handleMessage(
     try {
       await new Promise((r) => setTimeout(r, 8000));
 
-      const [msgs, imageUrls] = await Promise.all([
+      const [msgs, imgIds] = await Promise.all([
         redis.lrange<string>(sessionKey, 0, -1),
-        redis.lrange<string>(imageKey, 0, -1),
+        redis.lrange<string>(imageIdKey, 0, -1),
       ]);
-      await redis.del(sessionKey, imageKey, lockKey);
+      await redis.del(sessionKey, imageIdKey, lockKey);
 
       if (!msgs || msgs.length === 0) return;
 
       const admin = getAdmin();
+
+      // Download images as base64 here (not in webhook response path) to avoid timing out the request
+      let imageUrls: string[] = [];
+      if (imgIds && imgIds.length > 0 && serverUrl && instanceToken) {
+        const results = await Promise.allSettled(
+          imgIds.map((id) => downloadImageAsBase64(id, serverUrl, instanceToken))
+        );
+        imageUrls = results
+          .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled" && typeof r.value === "string")
+          .map((r) => r.value);
+        console.log(`[image-download] chatid=${chatid} downloaded ${imageUrls.length}/${imgIds.length} images`);
+      }
 
       const response = await runAgent({
         clinicId,
         sessionId: chatid,
         phone: chatPhone,
         newMessages: msgs,
-        imageUrls: imageUrls ?? [],
+        imageUrls,
         supabaseAdmin: admin,
       });
 
