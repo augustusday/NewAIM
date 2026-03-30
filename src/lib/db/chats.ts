@@ -98,12 +98,41 @@ export async function syncChatsFromUazapi(
       phone?: string;
       image?: string;
       wa_lastMsgTimestamp?: number;
+      wa_lastMessageTextVote?: string;
+      wa_lastMessageType?: string;
+      wa_unreadCount?: number;
     }> = json?.chats ?? [];
 
-    // Upsert each chat as a session (fire-and-forget individual; batch would require edge function)
+    const getLastMessagePreview = (chat: (typeof chats)[number]): string | undefined => {
+      const preview = chat.wa_lastMessageTextVote?.trim();
+      if (preview) return preview;
+
+      switch ((chat.wa_lastMessageType ?? "").toLowerCase()) {
+        case "audiomessage":
+        case "audio":
+        case "ptt":
+          return "🎵 Áudio";
+        case "image":
+          return "📷 Imagem";
+        case "video":
+          return "🎥 Vídeo";
+        case "document":
+          return "📄 Documento";
+        default:
+          return undefined;
+      }
+    };
+
+    const toIsoDate = (timestamp?: number): string | undefined => {
+      if (!timestamp || timestamp <= 0) return undefined;
+      const millis = timestamp > 1e12 ? timestamp : timestamp * 1000;
+      return new Date(millis).toISOString();
+    };
+
+    // Upsert each chat as a session, then refresh metadata from the UAZAPI payload.
     await Promise.all(
-      chats.map((chat) =>
-        supabase.rpc("upsert_chat_session", {
+      chats.map(async (chat) => {
+        await supabase.rpc("upsert_chat_session", {
           p_clinic_id: clinicId,
           p_wa_chat_id: chat.wa_chatid,
           p_wa_contact_name: chat.wa_contactName ?? chat.wa_name ?? chat.name ?? undefined,
@@ -111,8 +140,36 @@ export async function syncChatsFromUazapi(
           p_last_message_text: undefined,
           p_last_message_from_me: false,
           p_increment_unread: false,
-        })
-      )
+        });
+
+        const updatePayload: {
+          unread_count: number;
+          last_message_at?: string;
+          last_message_text?: string;
+          wa_profile_pic?: string;
+        } = {
+          unread_count: chat.wa_unreadCount ?? 0,
+        };
+
+        const lastMessageAt = toIsoDate(chat.wa_lastMsgTimestamp);
+        if (lastMessageAt) updatePayload.last_message_at = lastMessageAt;
+
+        const lastMessageText = getLastMessagePreview(chat);
+        if (lastMessageText) updatePayload.last_message_text = lastMessageText;
+
+        const profilePic = chat.image?.trim();
+        if (profilePic) updatePayload.wa_profile_pic = profilePic;
+
+        const { error } = await supabase
+          .from("chat_sessions")
+          .update(updatePayload)
+          .eq("clinic_id", clinicId)
+          .eq("wa_chat_id", chat.wa_chatid);
+
+        if (error) {
+          console.error("[syncChatsFromUazapi:update]", error.message);
+        }
+      })
     );
   } catch (err) {
     console.error("[syncChatsFromUazapi]", err instanceof Error ? err.message : err);

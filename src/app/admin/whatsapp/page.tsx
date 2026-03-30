@@ -108,6 +108,7 @@ function ClinicWaCard({
         await uazapiRequest(clinic.id, "POST", "/webhook/set", {
           url: webhookUrl,
           enabled: true,
+          events: ["messages", "connection"],
         });
         setWebhookStatus("ok");
       } catch {

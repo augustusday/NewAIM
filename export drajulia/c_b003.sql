@@ -1,0 +1,30 @@
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('a91d2816-d10a-430a-a0c8-d141ee7746d5', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Salete Aparecida dos Santos de Oliveira', '41997322504', NULL, NULL, '1976-01-30', 'female', 'active', NULL, '{"id_paciente_origem": "54523736", "numeroprontuario": "", "numeropaciente": "19", "rg": "67248473"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('d07b416a-84c1-4639-8600-d1d2426c97e1', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Thaís Isabelle Martins', '41996335862', NULL, '11208480910', '1997-04-23', 'female', 'active', NULL, '{"id_paciente_origem": "54524431", "numeroprontuario": "", "numeropaciente": "22", "bairro": "Campina do Siqueira", "cep": "80740620", "cidade": "Curitiba", "endereco": "Rua Tito Calderari", "uf": "PR"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('92e5bc70-44f2-453a-b4bb-ab9464c465f8', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Mylena Maria Milchesky', '15996593349', NULL, '07557218965', '2004-01-26', 'female', 'active', NULL, '{"id_paciente_origem": "54528870", "numeroprontuario": "", "numeropaciente": "39"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('77772554-ecd1-45b9-98d4-c4dfc4226388', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Lucas Gonçalves Januário', '41988383057', NULL, '08962777983', '1994-10-08', 'male', 'active', NULL, '{"id_paciente_origem": "54523225", "numeroprontuario": "", "numeropaciente": "18", "bairro": "Biogorrilho", "cidade": "Curitiba", "endereco": "Mário Burigo, 39", "uf": "PR"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('ef9abe37-1faa-43c4-82b6-960d3403d370', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Alice Oliveira Lima', '81993907996', NULL, NULL, '1996-10-31', NULL, 'active', NULL, '{"id_paciente_origem": "54527043", "numeroprontuario": "", "numeropaciente": "32", "rg": "9262789", "bairro": "Seminário", "cidade": "Curitiba", "endereco": "Antônio Rodrigues, 120", "uf": "PR"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('bcc82287-f376-4261-82f7-fe42f71a3009', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Gerusa Ribeiro Conceição Oliveira', '41999998205', NULL, '01008660930', '1988-03-10', 'female', 'active', NULL, '{"id_paciente_origem": "54529590", "numeroprontuario": "", "numeropaciente": "45"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('0317a7d4-e362-4b21-8a3f-aa1262a133c5', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Romena Macedo Ferro Costa', '41992294144', 'romenacosta@yahoo.com.br', '04954508983', '1984-02-07', 'female', 'active', NULL, '{"id_paciente_origem": "54525429", "numeroprontuario": "", "numeropaciente": "27", "cidade": "Curitiba", "endereco": "Coronel Joaquim Ignácio Taborda Ribas, 859", "uf": "PR"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('28d78055-d332-40c4-91a6-802809dc6944', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Henrique Rohneilt', '41987535353', NULL, '78120241991', '1970-02-27', 'male', 'active', NULL, '{"id_paciente_origem": "54529123", "numeroprontuario": "", "numeropaciente": "41", "cidade": "Curitiba", "uf": "PR"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('9c580499-c111-46f4-94c7-df83d0f6d536', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Marlon Elizeu Wasen', '47997672257', NULL, '04595614993', '1984-11-21', 'male', 'active', NULL, '{"id_paciente_origem": "54528319", "numeroprontuario": "", "numeropaciente": "37", "bairro": "São José", "cidade": "Curitiba", "endereco": "Antonina, 556", "uf": "PR"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('f4eaa10e-a58b-4b8e-b492-277abd7b5b5e', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Fernando Bianco da Costa', '41996771016', NULL, '08156243951', '1994-05-19', 'male', 'active', NULL, '{"id_paciente_origem": "54529539", "numeroprontuario": "", "numeropaciente": "44", "bairro": "Centro", "cidade": "Curitiba", "endereco": "Desembargador Motta, 1648", "uf": "PR"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;

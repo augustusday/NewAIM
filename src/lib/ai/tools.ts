@@ -44,7 +44,6 @@ function toJson(data: unknown): string {
 export function buildTools(
   clinicId: string,
   supabaseAdmin: SupabaseClient<Database>,
-  timezone: string,
   sessionId?: string
 ): { tools: Tool[]; executors: ToolExecutor } {
   const tools: Tool[] = [
@@ -548,9 +547,18 @@ export function buildTools(
       return toJson(result);
     },
 
-    async bloquear_agente(_args) {
+    async bloquear_agente() {
       if (!sessionId) return toJson({ success: false, reason: "sessionId não disponível." });
-      await supabaseAdmin.from("chat_sessions").update({ ai_paused: true }).eq("id", sessionId);
+      const { error } = await supabaseAdmin
+        .from("chat_sessions")
+        .update({ ai_paused: true })
+        .eq("clinic_id", clinicId)
+        .eq("wa_chat_id", sessionId);
+
+      if (error) {
+        return toJson({ success: false, reason: error.message });
+      }
+
       return toJson({ success: true, message: "Agente bloqueado. Um atendente humano dará continuidade." });
     },
   };
@@ -575,7 +583,7 @@ export function buildTools(
 }
 
 /** Returns the next N dates (including today) in YYYY-MM-DD format */
-export function getNextDates(n: number, timezone: string): string[] {
+export function getNextDates(n: number): string[] {
   const dates: string[] = [];
   const now = new Date();
   for (let i = 0; i < n; i++) {

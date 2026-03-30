@@ -1,0 +1,30 @@
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('ec07e624-5568-4066-b901-1d4df9727744', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Gilmar Dias Feliciano de Oliveira', '41988924397', NULL, '51904551572', '1969-09-08', 'male', 'active', NULL, '{"id_paciente_origem": "64588450", "numeroprontuario": "", "numeropaciente": "142"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('42f9c26f-7b14-4a93-b1ba-6e18cbd148c7', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Olavo Henrique Uniseski', '47997100046', NULL, '08871214978', NULL, 'male', 'active', NULL, '{"id_paciente_origem": "64690262", "numeroprontuario": "", "numeropaciente": "143", "bairro": "Progresso", "cep": "89281252", "cidade": "São Bento do Sul", "endereco": "Rua Alvim Moreti, 387", "uf": "SC"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('f76f1eee-aab3-4026-b1bd-60428cf85ce1', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Rose Eickhoff', NULL, NULL, NULL, NULL, 'male', 'active', NULL, '{"id_paciente_origem": "66959139", "numeroprontuario": "", "numeropaciente": "156"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('32a577db-8974-4752-959c-c876d2d72163', '30a89c67-7497-457f-a887-a56d1d721f6d', 'REUNIÃO MKT', NULL, NULL, NULL, NULL, NULL, 'active', NULL, '{"id_paciente_origem": "67145441", "numeroprontuario": "", "numeropaciente": "157"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('560be938-7906-4c3a-9e00-072c38340dde', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Jorge Barouk jr', '47991001000', NULL, NULL, NULL, 'male', 'active', NULL, '{"id_paciente_origem": "66767962", "numeroprontuario": "", "numeropaciente": "154"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('7deadc27-488c-41f7-8d9f-9b37736f8b78', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Oldemar Antonio Brighente', '41992212819', 'odemarbriga@gmail.com', '05661781920', '1948-07-23', 'male', 'active', NULL, '{"id_paciente_origem": "67433680", "numeroprontuario": "", "numeropaciente": "158", "bairro": "Portão", "cep": "81070160", "cidade": "Curitiba", "endereco": "Rua João Borsato", "uf": "PR", "complemento": "casa"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('c64e15b2-fedb-435a-90cc-f433d3b647b0', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Giovanna Gonzales Dalmora', '41992640023', 'giovannadalmora00@gmail.com', '08483688948', '1999-08-28', 'female', 'active', NULL, '{"id_paciente_origem": "59645778", "numeroprontuario": "", "numeropaciente": "106", "rg": "126656912", "bairro": "Juvevê", "cep": "80030001", "cidade": "Curitiba", "endereco": "Avenida João Gualberto", "uf": "PR", "complemento": "apro 1001"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('cd898351-8afa-4038-a1d0-7f57c6182240', '30a89c67-7497-457f-a887-a56d1d721f6d', 'unhas e sombrancelho', NULL, NULL, NULL, NULL, NULL, 'active', NULL, '{"id_paciente_origem": "67468733", "numeroprontuario": "", "numeropaciente": "159"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('c6d60903-c3ee-4dbf-a1e9-b90fbd3ed91a', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Rosiéli Raymundo Plaster', '27997741299', 'rosi9925@hotmail.com', '12976787700', '1990-06-24', 'female', 'active', NULL, '{"id_paciente_origem": "67616392", "numeroprontuario": "", "numeropaciente": "160", "bairro": "Cruzeiro", "cep": "83570000", "cidade": "Cerro Azul", "endereco": "Rua Júlia da Costa", "uf": "PR"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('07ebb0a5-b88d-495d-a208-aec6f773ab6d', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Paola Borges Fajardo', '47999378200', 'paolaborgesfajardo@gmail.com', '04397990905', '2000-02-13', 'female', 'active', NULL, '{"id_paciente_origem": "67616737", "numeroprontuario": "", "numeropaciente": "161", "bairro": "Zona Industrial Norte", "cep": "89219710", "cidade": "Joinville", "endereco": "Rua Paulo Malschitzki", "uf": "SC", "complemento": "apto 105"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;

@@ -143,6 +143,7 @@ import { cn } from "@/lib/utils";
 import { useClinic } from "@/hooks/use-clinic";
 import { useUazapiConfig } from "@/hooks/use-uazapi-config";
 import { getChatSessions, markChatRead, syncChatsFromUazapi, upsertChatSession, setAiPaused, type ChatSessionWithContact } from "@/lib/db/chats";
+import { supabase } from "@/lib/supabase";
 
 interface Message {
   id: string;
@@ -201,6 +202,7 @@ export default function ChatsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const filters = [
@@ -212,50 +214,314 @@ export default function ChatsPage() {
 
   const [synced, setSynced] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const selectedSessionRef = useRef<ChatSessionWithContact | null>(null);
+  const refreshInFlightRef = useRef(false);
+  const messageRequestRef = useRef(0);
 
-  const loadSessions = useCallback(async (syncFirst = false) => {
-    setLoading(true);
-    if (syncFirst && isConfigured) {
-      await syncChatsFromUazapi(clinicId);
-    }
-    const data = await getChatSessions(clinicId, {
-      status: activeFilter !== "all" ? activeFilter : undefined,
-    });
-    setSessions(data);
-    setLoading(false);
-    // Auto-open session from ?open= query param (e.g. navigating from CRM "Abrir chat")
-    if (autoOpenRef.current) {
-      const target = data.find((s) => s.wa_chat_id === autoOpenRef.current);
-      if (target) { autoOpenRef.current = null; handleSelectSession(target); }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clinicId, activeFilter, isConfigured]);
+  useEffect(() => {
+    selectedSessionRef.current = selectedSession;
+  }, [selectedSession]);
 
-  const refreshSilent = useCallback(async () => {
-    const data = await getChatSessions(clinicId, {
-      status: activeFilter !== "all" ? activeFilter : undefined,
-    });
-    setSessions((prev) => {
-      // Only update if something actually changed (by last_message_at comparison)
-      const prevMap = new Map(prev.map((s) => [s.id, s.last_message_at]));
-      const hasChanges = data.some((s) => prevMap.get(s.id) !== s.last_message_at || !prevMap.has(s.id));
-      return hasChanges ? data : prev;
-    });
-  }, [clinicId, activeFilter]);
+  const loadMessages = useCallback(async (
+    session: ChatSessionWithContact,
+    options?: { markRead?: boolean; showLoading?: boolean }
+  ) => {
+    const showLoading = options?.showLoading ?? true;
+    const markReadOnOpen = options?.markRead ?? false;
+    const requestId = ++messageRequestRef.current;
+
+    if (showLoading) {
+      setMessages([]);
+      setLoadingMessages(true);
+    }
+
+    if (markReadOnOpen && session.unread_count > 0) {
+      await Promise.allSettled([
+        markChatRead(session.id),
+        fetch("/api/uazapi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            path: "/chat/read",
+            method: "POST",
+            body: { number: session.wa_chat_id, read: true },
+          }),
+        }),
+      ]);
+
+      setSessions((prev) =>
+        prev.map((entry) => entry.id === session.id ? { ...entry, unread_count: 0 } : entry)
+      );
+      setSelectedSession((prev) =>
+        prev?.id === session.id ? { ...prev, unread_count: 0 } : prev
+      );
+    }
+
+    if (!isConfigured) {
+      if (showLoading && requestId === messageRequestRef.current) {
+        setLoadingMessages(false);
+      }
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/uazapi", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: "/message/find",
+          method: "POST",
+          body: { chatid: session.wa_chat_id, limit: 50, offset: 0 },
+        }),
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const raw: any[] = data?.messages ?? [];
+
+      if (!session.wa_contact_name) {
+        const firstReceived = raw.find((message) => !message.fromMe && message.senderName);
+        if (firstReceived?.senderName) {
+          await upsertChatSession(clinicId, session.wa_chat_id, {
+            wa_contact_name: firstReceived.senderName,
+          });
+
+          const withName = { ...session, wa_contact_name: firstReceived.senderName ?? null };
+          setSessions((prev) =>
+            prev.map((entry) => entry.id === session.id ? withName : entry)
+          );
+          if (selectedSessionRef.current?.id === session.id) {
+            setSelectedSession(withName);
+            selectedSessionRef.current = withName;
+          }
+        }
+      }
+
+      const parsedMessages: Message[] = raw
+        .map((message) => {
+          const msgType = (
+            message.type ?? message.messageType ?? message.msgType ?? message.mediaType ?? ""
+          ).toString().toLowerCase();
+
+          const isAudio = msgType === "audio" || msgType === "ptt"
+            || msgType === "myaudio" || msgType === "audiomessage"
+            || msgType.includes("audio") || msgType.includes("ptt");
+
+          const rawText = message.text ?? message.content ?? message.caption ?? message.body ?? message.message ?? "";
+          const text = typeof rawText === "string" ? rawText : "";
+
+          const rawId = message.messageid ?? message.id ?? message.message_id ?? message.messageId;
+          const rawMsgId = typeof rawId === "string"
+            ? (rawId.includes(":") ? rawId.split(":").pop()! : rawId)
+            : undefined;
+
+          const rawTs: number = message.messageTimestamp ?? message.timestamp ?? message.time ?? 0;
+          const ts = rawTs > 1e12 ? rawTs : rawTs * 1000;
+
+          return {
+            id: message.id ?? message.messageid ?? Math.random().toString(),
+            rawMsgId,
+            text: isAudio ? "🎵 Áudio" : text,
+            time: ts
+              ? new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+              : "",
+            fromMe: Boolean(message.fromMe ?? message.from_me),
+            status: "read" as const,
+            type: isAudio ? "audio" : ("text" as Message["type"]),
+            audioLoading: isAudio,
+            timestamp: ts,
+          };
+        })
+        .filter((message) => message.type === "audio" || message.text.trim())
+        .sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
+
+      if (requestId !== messageRequestRef.current || selectedSessionRef.current?.wa_chat_id !== session.wa_chat_id) {
+        return;
+      }
+
+      setMessages(parsedMessages);
+
+      const audioMessages = parsedMessages.filter((message) => message.type === "audio" && message.rawMsgId);
+      if (audioMessages.length > 0) {
+        const results = await Promise.allSettled(
+          audioMessages.map(async (message) => {
+            const makeReq = (body: Record<string, unknown>) => fetch("/api/uazapi", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                path: "/message/download",
+                method: "POST",
+                body,
+              }),
+            });
+
+            const downloadRes = await makeReq({ id: message.rawMsgId, return_base64: false, return_link: true, generate_mp3: true });
+            const downloadJson = await downloadRes.json() as { fileURL?: string; fileUrl?: string; base64Data?: string };
+
+            const url = downloadJson.fileURL ?? downloadJson.fileUrl ?? null;
+            if (url) return { id: message.id, url };
+
+            const fallbackRes = await makeReq({ id: message.rawMsgId, return_base64: true, return_link: false, generate_mp3: true });
+            const fallbackJson = await fallbackRes.json() as { base64Data?: string; mimetype?: string };
+            if (fallbackJson.base64Data) {
+              const mime = fallbackJson.mimetype ?? "audio/mpeg";
+              return { id: message.id, url: `data:${mime};base64,${fallbackJson.base64Data}` };
+            }
+
+            return { id: message.id, url: null };
+          })
+        );
+
+        if (requestId !== messageRequestRef.current || selectedSessionRef.current?.wa_chat_id !== session.wa_chat_id) {
+          return;
+        }
+
+        const urlMap = new Map<string, string>();
+        results.forEach((result) => {
+          if (result.status === "fulfilled" && result.value.url) {
+            urlMap.set(result.value.id, result.value.url);
+          }
+        });
+
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.type === "audio"
+              ? { ...message, audioUrl: urlMap.get(message.id) ?? undefined, audioLoading: false }
+              : message
+          )
+        );
+      } else if (parsedMessages.some((message) => message.type === "audio")) {
+        setMessages((prev) =>
+          prev.map((message) => message.type === "audio" ? { ...message, audioLoading: false } : message)
+        );
+      }
+    } catch {
+      // UAZAPI not reachable — keep current message state
+    } finally {
+      if (showLoading && requestId === messageRequestRef.current) {
+        setLoadingMessages(false);
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      } else if (requestId === messageRequestRef.current) {
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+      }
+    }
+  }, [clinicId, isConfigured]);
+
+  const handleSelectSession = useCallback(async (session: ChatSessionWithContact) => {
+    setSelectedSession(session);
+    selectedSessionRef.current = session;
+    await loadMessages(session, { markRead: true, showLoading: true });
+  }, [loadMessages]);
+
+  const refreshSessions = useCallback(async (options?: {
+    syncWithRemote?: boolean;
+    showLoading?: boolean;
+    showRefreshing?: boolean;
+    forceReloadSelectedMessages?: boolean;
+  }) => {
+    if (refreshInFlightRef.current) return;
+    refreshInFlightRef.current = true;
+
+    const syncWithRemote = options?.syncWithRemote ?? false;
+    const showLoading = options?.showLoading ?? false;
+    const showRefreshing = options?.showRefreshing ?? false;
+    const forceReloadSelectedMessages = options?.forceReloadSelectedMessages ?? false;
+
+    if (showLoading) setLoading(true);
+    if (showRefreshing) setRefreshing(true);
+
+    try {
+      if (syncWithRemote && isConfigured) {
+        await syncChatsFromUazapi(clinicId);
+      }
+
+      const data = await getChatSessions(clinicId, {
+        status: activeFilter !== "all" ? activeFilter : undefined,
+      });
+      setSessions(data);
+
+      if (autoOpenRef.current) {
+        const target = data.find((entry) => entry.wa_chat_id === autoOpenRef.current);
+        if (target) {
+          autoOpenRef.current = null;
+          await handleSelectSession(target);
+        }
+      }
+
+      const currentSelected = selectedSessionRef.current;
+      if (currentSelected) {
+        const latestSelected = data.find((entry) => entry.id === currentSelected.id) ?? null;
+        if (latestSelected) {
+          setSelectedSession(latestSelected);
+          selectedSessionRef.current = latestSelected;
+
+          const shouldReloadMessages = forceReloadSelectedMessages
+            || latestSelected.last_message_at !== currentSelected.last_message_at
+            || latestSelected.unread_count !== currentSelected.unread_count
+            || latestSelected.wa_contact_name !== currentSelected.wa_contact_name
+            || latestSelected.wa_profile_pic !== currentSelected.wa_profile_pic
+            || latestSelected.ai_paused !== currentSelected.ai_paused;
+
+          if (shouldReloadMessages) {
+            await loadMessages(latestSelected, {
+              markRead: latestSelected.unread_count > 0,
+              showLoading: false,
+            });
+          }
+        }
+      }
+    } finally {
+      if (showLoading) setLoading(false);
+      if (showRefreshing) setRefreshing(false);
+      refreshInFlightRef.current = false;
+    }
+  }, [activeFilter, clinicId, handleSelectSession, isConfigured, loadMessages]);
+
+  useEffect(() => {
+    setSynced(false);
+  }, [clinicId]);
 
   useEffect(() => {
     if (!clinicLoaded) return;
-    // First load: sync from UAZAPI to populate sessions
-    loadSessions(!synced).then(() => setSynced(true));
+    refreshSessions({ syncWithRemote: !synced, showLoading: true }).then(() => {
+      if (!synced) setSynced(true);
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clinicId, clinicLoaded, activeFilter]);
 
-  // Poll for new sessions every 8s (new messages arrive via webhook → DB → we pick them up)
   useEffect(() => {
     if (!clinicLoaded || !synced) return;
-    pollRef.current = setInterval(refreshSilent, 8000);
+    pollRef.current = setInterval(() => {
+      void refreshSessions({ syncWithRemote: true });
+    }, 8000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [clinicLoaded, synced, refreshSilent]);
+  }, [clinicLoaded, refreshSessions, synced]);
+
+  useEffect(() => {
+    if (!clinicLoaded || !clinicId) return;
+
+    const channel = supabase
+      .channel(`chat-sessions:${clinicId}:${activeFilter}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "chat_sessions",
+          filter: `clinic_id=eq.${clinicId}`,
+        },
+        () => {
+          void refreshSessions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [activeFilter, clinicId, clinicLoaded, refreshSessions]);
 
   const filteredSessions = sessions
     .filter((s) => {
@@ -273,164 +539,6 @@ export default function ChatsPage() {
       const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
       return tb - ta;
     });
-
-  const handleSelectSession = async (session: ChatSessionWithContact) => {
-    setSelectedSession(session);
-    setMessages([]);
-    setLoadingMessages(true);
-
-    // Mark as read
-    if (session.unread_count > 0) {
-      await markChatRead(session.id);
-      setSessions((prev) =>
-        prev.map((s) => s.id === session.id ? { ...s, unread_count: 0 } : s)
-      );
-    }
-
-    // Load messages via UAZAPI if configured — POST /message/find
-    if (isConfigured) {
-      try {
-        const res = await fetch(`/api/uazapi`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            path: `/message/find`,
-            method: "POST",
-            body: { chatid: session.wa_chat_id, limit: 50, offset: 0 },
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const raw: any[] = data?.messages ?? [];
-          // Debug: raw.length messages found
-
-          // If the session has no contact name, extract from the first received message
-          if (!session.wa_contact_name) {
-            const firstReceived = raw.find((m) => !m.fromMe && m.senderName);
-            if (firstReceived?.senderName) {
-              await upsertChatSession(clinicId, session.wa_chat_id, {
-                wa_contact_name: firstReceived.senderName,
-              });
-              setSessions((prev) =>
-                prev.map((s) => s.id === session.id
-                  ? { ...s, wa_contact_name: firstReceived.senderName ?? null }
-                  : s
-                )
-              );
-              setSelectedSession((prev: ChatSessionWithContact | null) => prev
-                ? { ...prev, wa_contact_name: firstReceived.senderName ?? null }
-                : prev
-              );
-            }
-          }
-
-          const msgs: Message[] = raw
-            .map((m) => {
-              // Type detection — try every possible field name UAZAPI might use
-              const msgType = (
-                m.type ?? m.messageType ?? m.msgType ?? m.mediaType ?? ""
-              ).toString().toLowerCase();
-
-              const isAudio = msgType === "audio" || msgType === "ptt"
-                || msgType === "myaudio" || msgType === "audiomessage"
-                || msgType.includes("audio") || msgType.includes("ptt");
-
-              // Text extraction — only use the value if it's actually a string
-              const rawText = m.text ?? m.content ?? m.caption ?? m.body ?? m.message ?? "";
-              const text = typeof rawText === "string" ? rawText : "";
-
-              // ID: strip "owner:" prefix if present (UAZAPI format: "owner:hexid")
-              const rawId = m.messageid ?? m.id ?? m.message_id ?? m.messageId;
-              const rawMsgId = typeof rawId === "string"
-                ? (rawId.includes(":") ? rawId.split(":").pop()! : rawId)
-                : undefined;
-
-              const rawTs: number = m.messageTimestamp ?? m.timestamp ?? m.time ?? 0;
-              // UAZAPI returns seconds; JS Date needs milliseconds
-              const ts = rawTs > 1e12 ? rawTs : rawTs * 1000;
-
-              return {
-                id: m.id ?? m.messageid ?? Math.random().toString(),
-                rawMsgId,
-                text: isAudio ? "🎵 Áudio" : text,
-                time: ts
-                  ? new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-                  : "",
-                fromMe: Boolean(m.fromMe ?? m.from_me),
-                status: "read" as const,
-                type: isAudio ? "audio" : ("text" as Message["type"]),
-                audioLoading: isAudio,
-                timestamp: ts,
-              };
-            })
-            .filter((m) => m.type === "audio" || m.text.trim())
-            .sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
-
-          setMessages(msgs);
-
-          // Fetch audio URLs in parallel for all audio messages
-          const audioMsgs = msgs.filter((m) => m.type === "audio" && m.rawMsgId);
-          if (audioMsgs.length > 0) {
-            const results = await Promise.allSettled(
-              audioMsgs.map(async (m) => {
-                // Try with return_link first, fallback to base64
-                const makeReq = (body: Record<string, unknown>) => fetch("/api/uazapi", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    path: "/message/download",
-                    method: "POST",
-                    body,
-                  }),
-                });
-
-                const res = await makeReq({ id: m.rawMsgId, return_base64: false, return_link: true, generate_mp3: true });
-                const dl = await res.json() as { fileURL?: string; fileUrl?: string; base64Data?: string; error?: string };
-
-                const url = dl.fileURL ?? dl.fileUrl ?? null;
-                if (url) return { id: m.id, url };
-
-                // Fallback: try base64
-                if (!url) {
-                  const res2 = await makeReq({ id: m.rawMsgId, return_base64: true, return_link: false, generate_mp3: true });
-                  const dl2 = await res2.json() as { base64Data?: string; mimetype?: string };
-                  if (dl2.base64Data) {
-                    const mime = dl2.mimetype ?? "audio/mpeg";
-                    return { id: m.id, url: `data:${mime};base64,${dl2.base64Data}` };
-                  }
-                }
-                return { id: m.id, url: null };
-              })
-            );
-            const urlMap = new Map<string, string>();
-            results.forEach((r) => {
-              if (r.status === "fulfilled" && r.value.url) {
-                urlMap.set(r.value.id, r.value.url);
-              }
-            });
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.type === "audio"
-                  ? { ...m, audioUrl: urlMap.get(m.id) ?? undefined, audioLoading: false }
-                  : m
-              )
-            );
-          } else if (msgs.some((m) => m.type === "audio")) {
-            // Audio messages exist but have no rawMsgId — mark as done loading
-            setMessages((prev) =>
-              prev.map((m) => m.type === "audio" ? { ...m, audioLoading: false } : m)
-            );
-          }
-        }
-      } catch {
-        // UAZAPI not reachable — show empty state
-      }
-    }
-
-    setLoadingMessages(false);
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-  };
 
   const handleSend = async () => {
     if (!inputValue.trim() || !selectedSession || !isConfigured) return;
@@ -491,11 +599,11 @@ export default function ChatsPage() {
             <h2 className="text-sm font-medium text-z-text">Conversas</h2>
             <div className="flex items-center gap-1">
               <button
-                onClick={() => loadSessions(true)}
+                onClick={() => void refreshSessions({ syncWithRemote: true, showRefreshing: true, forceReloadSelectedMessages: true })}
                 className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#019A67] hover:bg-[rgba(1,154,103,0.1)] transition-all"
                 title="Atualizar"
               >
-                <RefreshCw size={13} />
+                <RefreshCw size={13} className={refreshing ? "animate-spin" : undefined} />
               </button>
               <button className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#019A67] hover:bg-[rgba(1,154,103,0.1)] transition-all">
                 <Filter size={13} />

@@ -1,0 +1,30 @@
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('73401fb7-c682-4da7-9352-06f591c47fad', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Gustavo Grossl', '47996093834', NULL, '06738271948', '1995-02-06', 'male', 'active', NULL, '{"id_paciente_origem": "70526783", "numeroprontuario": "", "numeropaciente": "184"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('2462a256-7ae6-4b62-a418-b3704d6e9f22', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Diego José Dziedicz', '47997416551', NULL, NULL, '2018-03-20', 'male', 'active', NULL, '{"id_paciente_origem": "70555632", "numeroprontuario": "", "numeropaciente": "185", "cep": "89294000", "cidade": "Campo Alegre", "endereco": "Rua principal do salto", "uf": "SC"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('63fd95fb-a940-4b8b-b551-019baf5547d7', '30a89c67-7497-457f-a887-a56d1d721f6d', 'PERSONAL', NULL, NULL, NULL, NULL, NULL, 'active', NULL, '{"id_paciente_origem": "70903388", "numeroprontuario": "", "numeropaciente": "186"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('7f82556e-7d66-464a-be4e-de4370c1ab44', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Edir Rodrigues', '47999923289', NULL, '00443800979', '1981-03-10', 'female', 'active', NULL, '{"id_paciente_origem": "71098747", "numeroprontuario": "", "numeropaciente": "187"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('250bcb2e-1891-442a-8dfd-9c55b7790792', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Luciane Nogueira Dziedcz', '47997416551', NULL, '08686322956', '1992-12-15', 'female', 'active', NULL, '{"id_paciente_origem": "71135704", "numeroprontuario": "", "numeropaciente": "188"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('a5ead29a-1318-4ee3-960c-d25443748337', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Lucas Carvalho', '31985188161', 'carvalho.lucasjosue@gmail.com', '14380770680', '1999-11-25', 'male', 'active', NULL, '{"id_paciente_origem": "54474373", "numeroprontuario": "", "numeropaciente": "9", "rg": "20829434", "bairro": "Cardoso", "cep": "35455130", "cidade": "Itabirito", "endereco": "Rua Ana Maria Teixeira, 830", "uf": "MG"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('36fb7501-1117-4461-bec2-5fa83e2a2592', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Lurdes Regina Correa Zampieri', '41999750649', 'l.rcz@hotmail.com', '87740974900', '1970-06-13', 'female', 'active', NULL, '{"id_paciente_origem": "55626061", "numeroprontuario": "", "numeropaciente": "79", "bairro": "Cascatinha", "cep": "82025255", "cidade": "Curitiba", "endereco": "Rua Ângelo Trevisan, 390", "uf": "PR"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('789e8e0a-0ceb-487a-b0cc-6f1d77c1e604', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Joyce Nogueira Santuchi', NULL, 'santuchi.joyce@gmai.com', '10580672735', '1985-03-10', 'female', 'active', NULL, '{"id_paciente_origem": "72971142", "numeroprontuario": "", "numeropaciente": "197"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('9e8c528f-2d25-4ec5-a790-47f866d3aa49', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Luisa Eduarda Valim', NULL, NULL, NULL, NULL, 'female', 'active', NULL, '{"id_paciente_origem": "73004616", "numeroprontuario": "", "numeropaciente": "198"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('226f0e17-7ad5-4e45-92f3-8d44293722e0', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Hevilin Caroline Souza da Silva', '41999617119', NULL, '07503774967', '2001-08-30', 'female', 'active', NULL, '{"id_paciente_origem": "54521495", "numeroprontuario": "", "numeropaciente": "10", "cidade": "Curitiba", "endereco": "Joaquim da Costa Ribeiro 1230", "uf": "PR"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;

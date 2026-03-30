@@ -121,7 +121,7 @@ export async function runAgent(params: {
     inputPreview: userContent,
   });
 
-  const { tools, executors } = buildTools(clinicId, supabaseAdmin, config.timezone, sessionId);
+  const { tools, executors } = buildTools(clinicId, supabaseAdmin, sessionId);
 
   // Build system prompt with clinic context
   const now = new Date().toLocaleString("pt-BR", { timeZone: config.timezone });

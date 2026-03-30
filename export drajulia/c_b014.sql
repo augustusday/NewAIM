@@ -1,0 +1,30 @@
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('5187bcf1-8726-4cad-b287-d707d8702dee', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Giovanna Gonzales Dalmora', '41992640023', 'giovannadalmora00@gmail.com', '08483688948', '1999-08-28', 'female', 'inactive', NULL, '{"id_paciente_origem": "55779287", "numeroprontuario": "", "numeropaciente": "80", "bairro": "Juvevê", "cep": "80030001", "cidade": "Curitiba", "endereco": "Avenida João Gualberto, 2000, apto 1001", "uf": "PR"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('92a87080-6802-4569-beec-3cc2bf304f4a', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Luciano Favilla Bastos', '41988118886', 'belgrado@gmail.com', '05138853740', '1982-01-12', 'male', 'active', NULL, '{"id_paciente_origem": "67797355", "numeroprontuario": "", "numeropaciente": "162", "bairro": "Bigorrilho", "cep": "80730030", "cidade": "Curitiba", "endereco": "Rua Martim Afonso", "uf": "PR", "complemento": "apto 44"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('81aa26ae-ee03-43bb-a583-902db2ab0b92', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Tatiane Armacolo', '41987159560', NULL, '02828736946', '1980-01-17', 'female', 'active', NULL, '{"id_paciente_origem": "54594005", "numeroprontuario": "", "numeropaciente": "54", "rg": "66247589", "bairro": "Seminário", "cep": "80240330", "cidade": "Curitiba", "endereco": "Rua Lindolfo Pessoa, 179", "uf": "PR"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('660e1073-20af-4942-8262-7383cf1b3a61', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Flávia Dalbem Barth', '41996906106', NULL, '16902688087', '1950-12-19', 'female', 'active', NULL, '{"id_paciente_origem": "54524108", "numeroprontuario": "", "numeropaciente": "21", "cidade": "Estados Unidos", "endereco": "EUA 1454, 1102"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('5aec8e64-ee48-4c22-a8b3-cdafebf200a9', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Dinah', NULL, NULL, NULL, NULL, NULL, 'active', NULL, '{"id_paciente_origem": "68142284", "numeroprontuario": "", "numeropaciente": "163"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('0ab9f064-4ba4-4603-8a91-15622bbe7e17', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Maritza Muniz dos Santos', '41996305507', NULL, NULL, '1988-04-05', 'female', 'active', NULL, '{"id_paciente_origem": "54523954", "numeroprontuario": "", "numeropaciente": "20", "bairro": "Bigorrilho", "cidade": "Curitiba", "endereco": "Martim Afonso, 301", "uf": "PR"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('6f362ff1-4d4c-4d6a-b3bf-41d62a33d258', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Simone Denise Bianco', '47984562280', NULL, NULL, NULL, 'female', 'active', NULL, '{"id_paciente_origem": "68228686", "numeroprontuario": "", "numeropaciente": "164"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('31357e7b-267f-4f2d-a795-4e41899dc040', '30a89c67-7497-457f-a887-a56d1d721f6d', 'podologia Silmara', NULL, NULL, NULL, NULL, 'female', 'active', NULL, '{"id_paciente_origem": "68254193", "numeroprontuario": "", "numeropaciente": "165"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('0cd5b5dd-2c41-476f-8d68-9fefee581fe4', '30a89c67-7497-457f-a887-a56d1d721f6d', 'unha do pé Jana', NULL, NULL, NULL, NULL, NULL, 'active', NULL, '{"id_paciente_origem": "68254313", "numeroprontuario": "", "numeropaciente": "166"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('bb9e4474-cf4e-458b-aa03-1b14b3d79c94', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Thayane Camargo Porcel', '41988408686', 'camargathayane@outlook.com', '40532206886', '1996-03-30', 'female', 'active', NULL, '{"id_paciente_origem": "54978679", "numeroprontuario": "", "numeropaciente": "66", "rg": "40532206886", "bairro": "Vila Izabel", "cep": "80320270", "cidade": "Curitiba", "endereco": "Rua Parintins, 972, apto 31B", "uf": "PR"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;

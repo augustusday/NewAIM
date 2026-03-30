@@ -1,0 +1,6 @@
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('33bdf4e4-cb8d-447c-b4e7-a3610e876b2f', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Eric Araújo da Silva', '3496786286', NULL, NULL, NULL, 'male', 'active', NULL, '{"id_paciente_origem": "73093568", "numeroprontuario": "", "numeropaciente": "201"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+INSERT INTO contacts (id, clinic_id, full_name, phone, email, document, birth_date, gender, status, notes, custom_fields, insurance_type, created_by, created_at, updated_at)
+VALUES ('e30d77a5-9999-4c48-814f-544f63ae7564', '30a89c67-7497-457f-a887-a56d1d721f6d', 'Pamela Souza Vieira', '41995618883', NULL, NULL, NULL, 'female', 'active', NULL, '{"id_paciente_origem": "73149243", "numeroprontuario": "", "numeropaciente": "202"}'::jsonb, 'Particular', '8b1b148f-368b-4480-acdf-2236a593b2fb', NOW(), NOW())
+ON CONFLICT DO NOTHING;
