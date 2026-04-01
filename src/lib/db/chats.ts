@@ -9,6 +9,10 @@ export async function getChatSessions(
   clinicId: string,
   filter?: { status?: string; search?: string }
 ): Promise<ChatSessionWithContact[]> {
+  if (!clinicId.trim()) {
+    return [];
+  }
+
   let query = supabase
     .from("chat_sessions")
     .select("*, contact:contacts(id, full_name, phone, email)")
@@ -76,6 +80,10 @@ export async function updateChatStatus(
 export async function syncChatsFromUazapi(
   clinicId: string
 ): Promise<void> {
+  if (!clinicId.trim()) {
+    return;
+  }
+
   try {
     const res = await fetch("/api/uazapi", {
       method: "POST",

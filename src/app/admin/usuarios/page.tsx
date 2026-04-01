@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Shield, ShieldOff, Building2, Plus, X, AlertCircle, Eye, EyeOff, Mail } from "lucide-react";
 import { getAllUsers, toggleSuperAdmin, getAllClinics, type UserWithClinics, type ClinicWithStats } from "@/lib/db/admin";
+import { CLINIC_MEMBER_ROLE_OPTIONS, DEFAULT_CLINIC_MEMBER_ROLE } from "@/lib/clinic-member-roles";
 
 function initials(name: string) {
   const p = name.trim().split(" ").filter(Boolean);
@@ -30,7 +31,7 @@ function CreateUserModal({ clinics, onClose, onCreated }: {
     email: "",
     password: "",
     clinic_id: "",
-    role: "member",
+    role: DEFAULT_CLINIC_MEMBER_ROLE,
   });
   const [showPass, setShowPass] = useState(false);
   const [saving, setSaving]     = useState(false);
@@ -79,10 +80,10 @@ function CreateUserModal({ clinics, onClose, onCreated }: {
       <motion.div initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 16 }} transition={{ duration: 0.2 }}
         className="relative w-full max-w-md rounded-2xl p-6 z-10 shadow-2xl"
-        style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.2)" }}>
+        style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.2)" }}>
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-medium text-z-text">Novo usuário</h2>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)]"><X size={15} /></button>
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(29,182,160,0.08)]"><X size={15} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -91,14 +92,14 @@ function CreateUserModal({ clinics, onClose, onCreated }: {
             <input type="text" value={form.full_name} onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
               placeholder="João da Silva"
               className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+              style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }} />
           </div>
           <div>
             <label className="text-xs text-z-dim block mb-1.5">E-mail *</label>
             <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
               placeholder="joao@clinica.com"
               className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+              style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }} />
           </div>
           <div>
             <label className="text-xs text-z-dim block mb-1.5">Senha *</label>
@@ -107,7 +108,7 @@ function CreateUserModal({ clinics, onClose, onCreated }: {
                 onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                 placeholder="Mínimo 6 caracteres"
                 className="w-full px-3 py-2.5 pr-10 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
-                style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+                style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }} />
               <button type="button" onClick={() => setShowPass((p) => !p)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-z-faint hover:text-z-dim">
                 {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -119,22 +120,20 @@ function CreateUserModal({ clinics, onClose, onCreated }: {
               <label className="text-xs text-z-dim block mb-1.5">Clínica (opcional)</label>
               <select value={form.clinic_id} onChange={(e) => setForm((f) => ({ ...f, clinic_id: e.target.value }))}
                 className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none"
-                style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}>
+                style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}>
                 <option value="">Sem clínica</option>
                 {clinics.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
               <label className="text-xs text-z-dim block mb-1.5">Função</label>
-              <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+              <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as typeof f.role }))}
                 disabled={!form.clinic_id}
                 className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none disabled:opacity-50"
-                style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}>
-                <option value="member">Membro</option>
-                <option value="receptionist">Recepcionista</option>
-                <option value="doctor">Médico</option>
-                <option value="admin">Admin</option>
-                <option value="owner">Proprietário</option>
+                style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}>
+                {CLINIC_MEMBER_ROLE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -147,10 +146,10 @@ function CreateUserModal({ clinics, onClose, onCreated }: {
 
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm text-z-dim"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>Cancelar</button>
+              style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}>Cancelar</button>
             <motion.button type="submit" disabled={saving} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               className="flex-1 py-2.5 rounded-xl text-sm text-white font-medium disabled:opacity-60"
-              style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+              style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}>
               {saving ? "Criando..." : "Criar usuário"}
             </motion.button>
           </div>
@@ -192,9 +191,9 @@ export default function UsuariosPage() {
 
   const renderUserRow = (user: UserWithClinics, i: number) => (
     <motion.div key={user.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
-      className="flex items-center gap-4 px-5 py-3.5 border-b border-border hover:bg-[rgba(1,154,103,0.03)] transition-colors">
+      className="flex items-center gap-4 px-5 py-3.5 border-b border-border hover:bg-[rgba(29,182,160,0.03)] transition-colors">
       <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-medium text-white shrink-0"
-        style={{ background: user.is_super_admin ? "linear-gradient(135deg, #f59e0b, #d97706)" : "linear-gradient(135deg, rgba(1,154,103,0.5), rgba(1,154,103,0.8))" }}>
+        style={{ background: user.is_super_admin ? "linear-gradient(135deg, #f59e0b, #d97706)" : "linear-gradient(135deg, rgba(29,182,160,0.5), rgba(29,182,160,0.8))" }}>
         {initials(user.full_name || "U")}
       </div>
 
@@ -223,7 +222,7 @@ export default function UsuariosPage() {
           <span className="text-xs text-z-faint">Sem clínica</span>
         ) : user.clinics.map((c) => (
           <span key={c.clinic_id} className="text-[10px] px-2 py-0.5 rounded-lg flex items-center gap-1"
-            style={{ background: "rgba(1,154,103,0.08)", color: "#019A67" }}>
+            style={{ background: "rgba(29,182,160,0.08)", color: "#1DB6A0" }}>
             <Building2 size={8} /> {c.clinic_name}
             <span className="opacity-60">· {c.role}</span>
           </span>
@@ -239,9 +238,9 @@ export default function UsuariosPage() {
           title={user.is_super_admin ? "Remover Super Admin" : "Tornar Super Admin"}
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-all disabled:opacity-50"
           style={{
-            background: user.is_super_admin ? "rgba(224,85,85,0.08)" : "rgba(1,154,103,0.08)",
-            color: user.is_super_admin ? "#e05555" : "#019A67",
-            border: user.is_super_admin ? "1px solid rgba(224,85,85,0.2)" : "1px solid rgba(1,154,103,0.2)",
+            background: user.is_super_admin ? "rgba(224,85,85,0.08)" : "rgba(29,182,160,0.08)",
+            color: user.is_super_admin ? "#e05555" : "#1DB6A0",
+            border: user.is_super_admin ? "1px solid rgba(224,85,85,0.2)" : "1px solid rgba(29,182,160,0.2)",
           }}>
           {toggling === user.id ? (
             <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
@@ -263,14 +262,14 @@ export default function UsuariosPage() {
           <p className="text-sm text-z-dim mt-0.5">{loading ? "..." : `${users.length} usuário${users.length !== 1 ? "s" : ""} na plataforma`}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}>
             <Search size={13} className="text-z-dim" />
             <input type="text" placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)}
               className="bg-transparent text-sm text-z-text placeholder:text-z-faint outline-none w-40" />
           </div>
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowCreate(true)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-white font-medium"
-            style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 16px rgba(1,154,103,0.3)" }}>
+            style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)", boxShadow: "0 0 16px rgba(29,182,160,0.3)" }}>
             <Plus size={14} /> Novo usuário
           </motion.button>
         </div>
@@ -278,32 +277,32 @@ export default function UsuariosPage() {
 
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Total de usuários", value: loading ? "—" : String(users.length),                                 color: "#019A67" },
+          { label: "Total de usuários", value: loading ? "—" : String(users.length),                                 color: "#1DB6A0" },
           { label: "Super Admins",       value: loading ? "—" : String(users.filter((u) => u.is_super_admin).length), color: "#f59e0b" },
           { label: "Com clínica",        value: loading ? "—" : String(users.filter((u) => u.clinics.length > 0).length), color: "#6366f1" },
         ].map((s) => (
-          <div key={s.label} className="rounded-xl p-4" style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.08)" }}>
+          <div key={s.label} className="rounded-xl p-4" style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.08)" }}>
             <p className="text-2xl text-z-text mb-0.5" style={{ fontWeight: 500 }}>{s.value}</p>
             <p className="text-xs text-z-dim">{s.label}</p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.1)" }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.1)" }}>
         {loading ? (
           Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex items-center gap-4 px-5 py-4 border-b border-border">
-              <div className="w-9 h-9 rounded-xl animate-pulse" style={{ background: "rgba(1,154,103,0.08)" }} />
+              <div className="w-9 h-9 rounded-xl animate-pulse" style={{ background: "rgba(29,182,160,0.08)" }} />
               <div className="flex-1 space-y-2">
-                <div className="h-3 w-40 rounded animate-pulse" style={{ background: "rgba(1,154,103,0.06)" }} />
-                <div className="h-2.5 w-24 rounded animate-pulse" style={{ background: "rgba(1,154,103,0.04)" }} />
+                <div className="h-3 w-40 rounded animate-pulse" style={{ background: "rgba(29,182,160,0.06)" }} />
+                <div className="h-2.5 w-24 rounded animate-pulse" style={{ background: "rgba(29,182,160,0.04)" }} />
               </div>
             </div>
           ))
         ) : filtered.length === 0 ? (
           <div className="px-5 py-12 text-center">
             <p className="text-sm text-z-dim">Nenhum usuário encontrado</p>
-            {!search && <button onClick={() => setShowCreate(true)} className="mt-3 text-xs text-[#019A67] hover:text-[#01c47f]">+ Criar usuário</button>}
+            {!search && <button onClick={() => setShowCreate(true)} className="mt-3 text-xs text-[#1DB6A0] hover:text-[#22d3c0]">+ Criar usuário</button>}
           </div>
         ) : (
           <>

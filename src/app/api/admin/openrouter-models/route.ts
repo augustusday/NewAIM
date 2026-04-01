@@ -41,8 +41,8 @@ export async function GET(req: NextRequest) {
     const res = await fetch("https://openrouter.ai/api/v1/models", {
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://zelusapp.com.br",
-        "X-Title": "Zelus Admin",
+        "HTTP-Referer": "https://agendaiamed.com.br",
+        "X-Title": "AgendaIAMed Admin",
       },
       next: { revalidate: 300 }, // cache 5 min
     });

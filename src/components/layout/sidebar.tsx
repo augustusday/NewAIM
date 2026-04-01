@@ -5,52 +5,130 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard,
-  MessageCircle,
-  Users,
-  CalendarDays,
-  Settings,
+  BarChart2,
+  MessageSquareText,
+  UsersRound,
+  CalendarCheck2,
+  SlidersHorizontal,
   Bell,
-  ChevronRight,
   LogOut,
   Shield,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { ThemeToggle } from "./theme-toggle";
 import { useUser } from "@/hooks/use-user";
 import { supabase } from "@/lib/supabase";
 
-const navItems = [
-  {
-    href: "/dashboard",
-    icon: LayoutDashboard,
-    label: "Dashboard",
-    description: "Visão geral",
-  },
-  {
-    href: "/dashboard/chats",
-    icon: MessageCircle,
-    label: "Chats",
-    description: "WhatsApp",
-  },
-  {
-    href: "/dashboard/crm",
-    icon: Users,
-    label: "CRM",
-    description: "Contatos",
-  },
-  {
-    href: "/dashboard/agenda",
-    icon: CalendarDays,
-    label: "Agenda",
-    description: "Consultas",
-  },
+// Order: Conversas, Agenda, Dashboard, Pacientes
+const NAV_MAIN = [
+  { href: "/dashboard/chats",  icon: MessageSquareText, label: "Conversas",  sub: "WhatsApp" },
+  { href: "/dashboard/agenda", icon: CalendarCheck2,    label: "Agenda",     sub: "Consultas" },
+  { href: "/dashboard",        icon: BarChart2,         label: "Dashboard",  sub: "Visão geral" },
+  { href: "/dashboard/crm",    icon: UsersRound,        label: "Pacientes",  sub: "CRM" },
 ];
+
+const NAV_SYSTEM = [
+  { href: "/dashboard/settings", icon: SlidersHorizontal, label: "Configurações" },
+];
+
+const SPRING      = { type: "spring" as const, stiffness: 400, damping: 40 };
+const SPRING_SLOW = { type: "spring" as const, stiffness: 300, damping: 35 };
+const EASE_OUT    = [0.23, 1, 0.32, 1] as const;
+
+interface NavItemProps {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  active: boolean;
+  collapsed: boolean;
+  index: number;
+}
+
+function NavItem({ href, icon: Icon, label, active, collapsed, index }: NavItemProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ ...SPRING, delay: index * 0.04 }}
+    >
+      <Link href={href}>
+        <div
+          className="relative flex items-center gap-3 rounded-lg cursor-pointer group"
+          style={{
+            padding: collapsed ? "9px 10px" : "9px 12px",
+            background: active ? "rgba(29,182,160,0.08)" : "transparent",
+            color: active ? "#1DB6A0" : "var(--sidebar-text-dim)",
+            transition: "background 180ms ease, color 180ms ease",
+          }}
+          onMouseEnter={(e) => {
+            if (!active)
+              (e.currentTarget as HTMLDivElement).style.background = "var(--sidebar-hover-bg)";
+          }}
+          onMouseLeave={(e) => {
+            if (!active)
+              (e.currentTarget as HTMLDivElement).style.background = "transparent";
+          }}
+        >
+          {active && (
+            <motion.div
+              layoutId="sidebar-indicator"
+              className="absolute left-0 top-1.5 bottom-1.5 rounded-full"
+              style={{ width: 2.5, background: "#1DB6A0" }}
+              transition={SPRING}
+            />
+          )}
+          <Icon
+            size={16}
+            strokeWidth={active ? 2.25 : 1.75}
+            className="shrink-0"
+            style={{ marginLeft: active ? 6 : 4 }}
+          />
+          <AnimatePresence initial={false}>
+            {!collapsed && (
+              <motion.span
+                key="label"
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.18, ease: EASE_OUT }}
+                className="text-[13px] font-medium truncate overflow-hidden whitespace-nowrap"
+              >
+                {label}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
+function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean }) {
+  return (
+    <AnimatePresence initial={false}>
+      {!collapsed ? (
+        <motion.p
+          key="label"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase select-none"
+          style={{ color: "var(--z-text-faint)", letterSpacing: "0.1em" }}
+        >
+          {label}
+        </motion.p>
+      ) : (
+        <div key="spacer" style={{ height: 14 }} />
+      )}
+    </AnimatePresence>
+  );
+}
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
+  const router   = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useUser();
 
@@ -60,303 +138,272 @@ export function Sidebar() {
   };
 
   const initials = user?.full_name
-    ? user.full_name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase()
+    ? user.full_name.split(" ").slice(0, 2).map((w: string) => w[0]).join("").toUpperCase()
     : "?";
 
   return (
     <motion.aside
-      animate={{ width: collapsed ? 68 : 232 }}
-      transition={{ duration: 0.3, ease: "easeOut" as const }}
+      animate={{ width: collapsed ? 64 : 248 }}
+      transition={SPRING_SLOW}
       className="relative flex flex-col h-full overflow-hidden shrink-0"
       style={{
         background: "var(--sidebar-bg)",
         borderRight: "1px solid var(--sidebar-border)",
-        boxShadow: "var(--z-shadow)",
       }}
     >
-      {/* Ambient top glow */}
+      {/* ── Logo bar ── */}
       <div
-        className="absolute top-0 left-0 right-0 h-24 pointer-events-none"
+        className="shrink-0"
         style={{
-          background:
-            "radial-gradient(ellipse 120% 80% at 50% 0%, rgba(1,154,103,0.08) 0%, transparent 70%)",
+          height: collapsed ? 88 : 64,
+          padding: collapsed ? "8px 0" : "0 14px",
+          borderBottom: "1px solid var(--sidebar-border)",
         }}
-      />
-
-      {/* Logo */}
-      <div
-        className="flex items-center h-14 px-3.5 shrink-0"
-        style={{ borderBottom: "1px solid var(--sidebar-border)" }}
       >
-        <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
-          <AnimatePresence mode="wait">
-            {collapsed ? (
-              <motion.div
-                key="icon"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="shrink-0"
-              >
-                <Image src="/icon.png" alt="Zelus" width={28} height={28} className="rounded-xl object-cover" />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="logo"
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
-                transition={{ duration: 0.2 }}
-                className="shrink-0"
-              >
-                <Image src="/logo-zelus.png" alt="Zelus" width={96} height={30} className="object-contain" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <motion.button
-          animate={{ rotate: collapsed ? 0 : 180 }}
-          transition={{ duration: 0.3 }}
-          onClick={() => setCollapsed(!collapsed)}
-          className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-200"
-          style={{ color: "var(--sidebar-text-dim)" }}
+        <div
+          className="flex h-full"
+          style={{
+            flexDirection: collapsed ? "column" : "row",
+            alignItems: "center",
+            justifyContent: collapsed ? "center" : "space-between",
+            gap: collapsed ? 6 : 0,
+          }}
         >
-          <ChevronRight size={13} />
-        </motion.button>
+          <div className="flex items-center gap-2.5 min-w-0 overflow-hidden">
+            <div
+              className="shrink-0 flex items-center justify-center"
+              style={{ width: collapsed ? 24 : 28, height: collapsed ? 36 : 42 }}
+            >
+              <Image
+                src="/brand-mark.png"
+                alt="AgendaIAMed"
+                width={collapsed ? 24 : 28}
+                height={collapsed ? 36 : 42}
+                className="object-contain"
+              />
+            </div>
+          </div>
+
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            onClick={() => setCollapsed((c) => !c)}
+            className="shrink-0 flex items-center justify-center rounded-md"
+            style={{ width: 26, height: 26, color: "var(--z-text-faint)" }}
+            title={collapsed ? "Expandir menu" : "Recolher menu"}
+          >
+            {collapsed
+              ? <PanelLeftOpen size={14} strokeWidth={1.75} />
+              : <PanelLeftClose size={14} strokeWidth={1.75} />}
+          </motion.button>
+        </div>
       </div>
 
-      {/* Super admin banner */}
+      {/* ── Super admin banner ── */}
       <AnimatePresence>
-        {!collapsed && user?.is_super_admin && (
+        {user?.is_super_admin && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mx-3 mt-3 overflow-hidden"
+            transition={SPRING}
+            className="overflow-hidden"
+            style={{ padding: "8px 10px 0" }}
           >
             <a
               href="/admin"
-              className="flex items-center gap-2 px-3 py-2 rounded-xl transition-opacity hover:opacity-80"
-              style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)" }}
+              className="flex items-center gap-2 rounded-md w-full"
+              style={{
+                padding: "6px 10px",
+                background: "rgba(245,158,11,0.08)",
+                border: "1px solid rgba(245,158,11,0.2)",
+              }}
             >
-              <Shield size={11} style={{ color: "#f59e0b", flexShrink: 0 }} />
-              <span className="text-[10px] font-medium truncate" style={{ color: "#f59e0b" }}>
-                Voltar ao Admin
-              </span>
+              <Shield size={10} style={{ color: "#f59e0b", flexShrink: 0 }} />
+              <AnimatePresence initial={false}>
+                {!collapsed && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="text-[11px] font-medium truncate"
+                    style={{ color: "#f59e0b" }}
+                  >
+                    Painel Admin
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </a>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Clinic pill */}
-      <AnimatePresence>
+      {/* ── Clinic chip ── */}
+      <AnimatePresence initial={false}>
         {!collapsed && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mx-3 mt-2 overflow-hidden"
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden"
+            style={{ padding: "10px 10px 0" }}
           >
             <div
-              className="px-3 py-2 rounded-xl"
+              className="flex items-center gap-2 rounded-md"
               style={{
-                background: "var(--accent)",
-                border: "1px solid var(--border)",
+                padding: "7px 10px",
+                background: "rgba(29,182,160,0.06)",
+                border: "1px solid rgba(29,182,160,0.12)",
               }}
             >
-              <p
-                className="text-[10px] uppercase tracking-widest font-medium mb-0.5"
-                style={{ color: "var(--z-text-dim)" }}
-              >
-                Clínica
-              </p>
-              <p
-                className="text-xs font-medium truncate"
-                style={{ color: "var(--z-text)" }}
-              >
-                {user?.clinic_name ?? "—"}
+              <div className="rounded-sm shrink-0" style={{ width: 6, height: 6, background: "#1DB6A0" }} />
+              <p className="text-[12px] font-medium truncate" style={{ color: "var(--z-text-dim)" }}>
+                {user?.clinic_name ?? "Clínica"}
               </p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Nav */}
-      <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-        {navItems.map((item, i) => {
-          const active =
-            pathname === item.href ||
-            (item.href !== "/dashboard" && pathname.startsWith(item.href));
-          const Icon = item.icon;
+      {/* ── Navigation ── */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden" style={{ padding: "4px 8px 8px" }}>
+        <SectionLabel label="Módulos" collapsed={collapsed} />
 
-          return (
-            <Link key={item.href} href={item.href}>
-              <motion.div
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200"
-                style={{
-                  background: active ? "var(--sidebar-active-bg)" : "transparent",
-                  color: active ? "var(--sidebar-active-text)" : "var(--sidebar-text-dim)",
-                }}
-              >
-                {active && (
-                  <motion.div
-                    layoutId="nav-active"
-                    className="absolute inset-0 rounded-xl"
-                    style={{
-                      background: "var(--sidebar-active-bg)",
-                      border: "1px solid rgba(1,154,103,0.2)",
-                    }}
-                    transition={{ duration: 0.25, ease: "easeOut" as const }}
-                  />
-                )}
-
-                <Icon size={17} className="relative z-10 shrink-0" />
-
-                <AnimatePresence>
-                  {!collapsed && (
-                    <motion.div
-                      initial={{ opacity: 0, x: -6 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -6 }}
-                      className="flex-1 flex items-center justify-between relative z-10 overflow-hidden"
-                    >
-                      <span className="text-sm font-medium truncate">
-                        {item.label}
-                      </span>
-                      {"badge" in item && !active && (
-                        <span
-                          className="text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0"
-                          style={{
-                            background: "rgba(1,154,103,0.15)",
-                            color: "#019A67",
-                          }}
-                        >
-                          {(item as { badge?: number }).badge}
-                        </span>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Bottom */}
-      <div
-        className="px-2 pb-3 space-y-0.5"
-        style={{ borderTop: "1px solid var(--sidebar-border)", paddingTop: "12px" }}
-      >
-        {/* Notifications */}
-        <div
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200"
-          style={{ color: "var(--sidebar-text-dim)" }}
-        >
-          <div className="relative shrink-0">
-            <Bell size={17} />
-            <span
-              className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
-              style={{ background: "#019A67" }}
-            />
-          </div>
-          <AnimatePresence>
-            {!collapsed && (
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-sm font-medium"
-              >
-                Notificações
-              </motion.span>
-            )}
-          </AnimatePresence>
+        <div className="space-y-0.5">
+          {NAV_MAIN.map((item, i) => {
+            const active =
+              item.href === "/dashboard"
+                ? pathname === "/dashboard"
+                : pathname.startsWith(item.href);
+            return (
+              <NavItem
+                key={item.href}
+                href={item.href}
+                icon={item.icon}
+                label={item.label}
+                active={active}
+                collapsed={collapsed}
+                index={i}
+              />
+            );
+          })}
         </div>
 
-        {/* Settings */}
-        <Link href="/dashboard/settings">
+        <SectionLabel label="Sistema" collapsed={collapsed} />
+
+        <div className="space-y-0.5">
+          {/* Notifications */}
           <div
-            className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200",
-              pathname.startsWith("/dashboard/settings") && "rounded-xl"
-            )}
+            className="relative flex items-center gap-3 rounded-lg cursor-pointer"
             style={{
-              background: pathname.startsWith("/dashboard/settings")
-                ? "var(--sidebar-active-bg)"
-                : "transparent",
-              color: pathname.startsWith("/dashboard/settings")
-                ? "var(--sidebar-active-text)"
-                : "var(--sidebar-text-dim)",
+              padding: collapsed ? "9px 10px" : "9px 12px",
+              color: "var(--sidebar-text-dim)",
             }}
           >
-            <Settings size={17} className="shrink-0" />
-            <AnimatePresence>
+            <div className="relative shrink-0" style={{ marginLeft: 4 }}>
+              <Bell size={16} strokeWidth={1.75} />
+              <span
+                className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full"
+                style={{ background: "#1DB6A0" }}
+              />
+            </div>
+            <AnimatePresence initial={false}>
               {!collapsed && (
                 <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-sm font-medium"
+                  key="notif"
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={{ duration: 0.18, ease: EASE_OUT }}
+                  className="text-[13px] font-medium truncate overflow-hidden whitespace-nowrap"
                 >
-                  Configurações
+                  Notificações
                 </motion.span>
               )}
             </AnimatePresence>
           </div>
-        </Link>
 
-        {/* Theme toggle */}
-        <ThemeToggle collapsed={collapsed} />
+          {NAV_SYSTEM.map((item, i) => {
+            const active = pathname.startsWith(item.href);
+            return (
+              <NavItem
+                key={item.href}
+                href={item.href}
+                icon={item.icon}
+                label={item.label}
+                active={active}
+                collapsed={collapsed}
+                index={NAV_MAIN.length + i}
+              />
+            );
+          })}
+        </div>
+      </nav>
 
-        {/* User */}
+      {/* ── Bottom — User / Logout (no dark mode toggle) ── */}
+      <div style={{ borderTop: "1px solid var(--sidebar-border)", padding: "10px 8px 12px" }}>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 mt-1 hover:bg-[rgba(224,85,85,0.06)] group"
-          style={{ borderTop: "1px solid var(--sidebar-border)", paddingTop: "10px", marginTop: "8px" }}
+          className="w-full flex items-center gap-2.5 rounded-lg group"
+          style={{
+            padding: collapsed ? "8px 10px" : "8px 12px",
+            color: "var(--sidebar-text-dim)",
+            transition: "background 180ms ease",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = "rgba(244,67,54,0.05)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+          }}
         >
           <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold text-white shrink-0"
-            style={{ background: "linear-gradient(135deg, #019A67, #01c47f)" }}
+            className="shrink-0 flex items-center justify-center rounded-full text-[11px] font-semibold text-white"
+            style={{
+              width: 28,
+              height: 28,
+              background: "linear-gradient(135deg, #1DB6A0 0%, #22d3c0 100%)",
+              marginLeft: collapsed ? -2 : 0,
+            }}
           >
             {initials}
           </div>
-          <AnimatePresence>
+
+          <AnimatePresence initial={false}>
             {!collapsed && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                key="userinfo"
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.18, ease: EASE_OUT }}
                 className="flex-1 overflow-hidden text-left"
               >
-                <p
-                  className="text-xs font-medium truncate"
-                  style={{ color: "var(--z-text)" }}
-                >
+                <p className="text-[12px] font-semibold truncate leading-tight" style={{ color: "var(--z-text)" }}>
                   {user?.full_name ?? "—"}
                 </p>
-                <p
-                  className="text-[10px] truncate"
-                  style={{ color: "var(--z-text-dim)" }}
-                >
-                  {user?.is_super_admin ? "Super Admin" : "Usuário"}
+                <p className="text-[10px] truncate leading-tight mt-0.5" style={{ color: "var(--z-text-faint)" }}>
+                  {user?.is_super_admin ? "Super Admin" : "Membro"}
                 </p>
               </motion.div>
             )}
           </AnimatePresence>
-          <AnimatePresence>
+
+          <AnimatePresence initial={false}>
             {!collapsed && (
               <motion.div
+                key="logout-icon"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
               >
-                <LogOut size={13} className="group-hover:text-[#e05555] transition-colors" style={{ color: "var(--z-text-faint)" }} />
+                <LogOut
+                  size={13}
+                  strokeWidth={1.75}
+                  className="group-hover:text-[#F44336] transition-colors duration-150"
+                  style={{ color: "var(--z-text-faint)" }}
+                />
               </motion.div>
             )}
           </AnimatePresence>

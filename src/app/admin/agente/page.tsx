@@ -42,12 +42,12 @@ function SystemPromptModal({
         initial={{ opacity: 0, scale: 0.96, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 16 }} transition={{ duration: 0.18 }}
         className="relative w-full max-w-3xl rounded-2xl z-10 shadow-2xl flex flex-col"
-        style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.2)", maxHeight: "90vh" }}
+        style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.2)", maxHeight: "90vh" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
           <h2 className="text-sm font-medium text-z-text">System Prompt</h2>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)] transition-colors">
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(29,182,160,0.08)] transition-colors">
             <X size={14} />
           </button>
         </div>
@@ -68,7 +68,7 @@ function SystemPromptModal({
           <button
             onClick={() => { onChange(local); onClose(); }}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white"
-            style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}
+            style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}
           >
             <Check size={13} /> Aplicar
           </button>
@@ -147,7 +147,7 @@ function StepNode({ step, index }: { step: ExecutionStep; index: number }) {
     ? "#6366f1"
     : isToolCall
     ? "#f59e0b"
-    : "#019A67";
+    : "#1DB6A0";
 
   const nodeLabel = isLlm
     ? "LLM"
@@ -316,7 +316,7 @@ function ExecutionDetail({
   }, [execution.id, clinicId]);
 
   const statusColor =
-    execution.status === "success" ? "#019A67" :
+    execution.status === "success" ? "#1DB6A0" :
     execution.status === "error"   ? "#e05555" : "#f59e0b";
 
   const statusLabel =
@@ -394,9 +394,9 @@ function ExecutionDetail({
       {execution.final_response && (
         <div
           className="mt-4 px-3 py-2.5 rounded-xl"
-          style={{ background: "rgba(1,154,103,0.06)", border: "1px solid rgba(1,154,103,0.2)" }}
+          style={{ background: "rgba(29,182,160,0.06)", border: "1px solid rgba(29,182,160,0.2)" }}
         >
-          <p className="text-[10px] font-medium mb-1" style={{ color: "#019A67" }}>Resposta final enviada</p>
+          <p className="text-[10px] font-medium mb-1" style={{ color: "#1DB6A0" }}>Resposta final enviada</p>
           <p className="text-xs text-z-text whitespace-pre-wrap">{execution.final_response}</p>
         </div>
       )}
@@ -489,7 +489,7 @@ function AiLogsSection({ clinicId }: { clinicId: string }) {
 
       {executions.map((exec, i) => {
         const statusColor =
-          exec.status === "success" ? "#019A67" :
+          exec.status === "success" ? "#1DB6A0" :
           exec.status === "error"   ? "#e05555" : "#f59e0b";
         const displayName = exec.contact_name || exec.phone || "Desconhecido";
 
@@ -501,7 +501,7 @@ function AiLogsSection({ clinicId }: { clinicId: string }) {
             transition={{ delay: i * 0.03 }}
             onClick={() => setSelected(exec)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:opacity-80 transition-opacity text-left"
-            style={{ background: "var(--surface-2)", border: "1px solid rgba(1,154,103,0.08)" }}
+            style={{ background: "var(--surface-2)", border: "1px solid rgba(29,182,160,0.08)" }}
           >
             {/* Status dot */}
             <div
@@ -655,7 +655,7 @@ function ClinicAiCard({
   };
 
   const isConfigured = !!(formData.ai_openai_key && formData.ai_system_prompt);
-  const statusColor = formData.ai_enabled && isConfigured ? "#019A67" : formData.ai_enabled ? "#f59e0b" : "#6b7280";
+  const statusColor = formData.ai_enabled && isConfigured ? "#1DB6A0" : formData.ai_enabled ? "#f59e0b" : "#6b7280";
   const statusLabel = formData.ai_enabled && isConfigured ? "Ativo" : formData.ai_enabled ? "Parcialmente configurado" : "Inativo";
 
   return (
@@ -677,15 +677,15 @@ function ClinicAiCard({
         </div>
 
         {(clinic.conversationCount ?? 0) > 0 && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: "rgba(1,154,103,0.1)" }}>
-            <MessageSquare size={12} style={{ color: "#019A67" }} />
-            <span className="text-xs font-medium" style={{ color: "#019A67" }}>{clinic.conversationCount} hoje</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ background: "rgba(29,182,160,0.1)" }}>
+            <MessageSquare size={12} style={{ color: "#1DB6A0" }} />
+            <span className="text-xs font-medium" style={{ color: "#1DB6A0" }}>{clinic.conversationCount} hoje</span>
           </div>
         )}
 
         <button onClick={toggle} className="transition-colors">
           {formData.ai_enabled
-            ? <ToggleRight size={24} style={{ color: "#019A67" }} />
+            ? <ToggleRight size={24} style={{ color: "#1DB6A0" }} />
             : <ToggleLeft size={24} className="text-z-faint" />}
         </button>
 
@@ -711,9 +711,9 @@ function ClinicAiCard({
                   onClick={() => setCardTab(t)}
                   className="flex-1 py-2.5 text-xs font-medium transition-all flex items-center justify-center gap-1.5"
                   style={{
-                    color: cardTab === t ? "#019A67" : "var(--z-dim)",
-                    borderBottom: cardTab === t ? "2px solid #019A67" : "2px solid transparent",
-                    background: cardTab === t ? "rgba(1,154,103,0.04)" : "transparent",
+                    color: cardTab === t ? "#1DB6A0" : "var(--z-dim)",
+                    borderBottom: cardTab === t ? "2px solid #1DB6A0" : "2px solid transparent",
+                    background: cardTab === t ? "rgba(29,182,160,0.04)" : "transparent",
                   }}
                 >
                   {t === "config"
@@ -733,7 +733,7 @@ function ClinicAiCard({
                       value={formData.ai_agent_name ?? ""}
                       onChange={(e) => setFormData((p) => ({ ...p, ai_agent_name: e.target.value }))}
                       placeholder="Assistente"
-                      className="w-full px-3 py-2 rounded-xl text-sm text-z-text outline-none focus:ring-1 focus:ring-[#019A67]"
+                      className="w-full px-3 py-2 rounded-xl text-sm text-z-text outline-none focus:ring-1 focus:ring-[#1DB6A0]"
                       style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
                     />
                   </div>
@@ -744,7 +744,7 @@ function ClinicAiCard({
                       value={formData.ai_model ?? "google/gemini-2.0-flash-001"}
                       onChange={(e) => setFormData((p) => ({ ...p, ai_model: e.target.value }))}
                       disabled={modelsLoading}
-                      className="w-full px-3 py-2 rounded-xl text-sm text-z-text outline-none focus:ring-1 focus:ring-[#019A67] disabled:opacity-60"
+                      className="w-full px-3 py-2 rounded-xl text-sm text-z-text outline-none focus:ring-1 focus:ring-[#1DB6A0] disabled:opacity-60"
                       style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
                     >
                       {models.length === 0 ? (
@@ -791,7 +791,7 @@ function ClinicAiCard({
                         }
                       }}
                       placeholder="sk-or-..."
-                      className="w-full px-3 py-2 pr-9 rounded-xl text-sm text-z-text outline-none focus:ring-1 focus:ring-[#019A67] font-mono"
+                      className="w-full px-3 py-2 pr-9 rounded-xl text-sm text-z-text outline-none focus:ring-1 focus:ring-[#1DB6A0] font-mono"
                       style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
                     />
                     <button
@@ -817,8 +817,8 @@ function ClinicAiCard({
                           onClick={() => setShowPromptInfo((p) => !p)}
                           className="w-5 h-5 flex items-center justify-center rounded-full transition-colors"
                           style={{
-                            background: showPromptInfo ? "rgba(1,154,103,0.12)" : "transparent",
-                            color: showPromptInfo ? "#019A67" : "var(--z-faint)",
+                            background: showPromptInfo ? "rgba(29,182,160,0.12)" : "transparent",
+                            color: showPromptInfo ? "#1DB6A0" : "var(--z-faint)",
                           }}
                         >
                           <Info size={12} />
@@ -831,13 +831,13 @@ function ClinicAiCard({
                                 initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
                                 transition={{ duration: 0.12 }}
                                 className="absolute left-0 top-full mt-1.5 z-30 w-72 rounded-xl p-3 shadow-2xl text-xs"
-                                style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.2)" }}
+                                style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.2)" }}
                               >
                                 <p className="font-medium text-z-text mb-2">O que incluir no prompt:</p>
                                 <ul className="space-y-1 mb-3">
                                   {PROMPT_INFO.include.map((t) => (
                                     <li key={t} className="flex items-start gap-1.5 text-z-dim">
-                                      <CheckCircle2 size={10} className="shrink-0 mt-0.5" style={{ color: "#019A67" }} />
+                                      <CheckCircle2 size={10} className="shrink-0 mt-0.5" style={{ color: "#1DB6A0" }} />
                                       {t}
                                     </li>
                                   ))}
@@ -870,7 +870,7 @@ function ClinicAiCard({
                     onChange={(e) => setFormData((p) => ({ ...p, ai_system_prompt: e.target.value }))}
                     placeholder={`Você é [Nome], assistente virtual da [Clínica]. Seu objetivo é agendar consultas e responder dúvidas dos pacientes de forma acolhedora e profissional.\n\nSeu tom é profissional mas próximo...`}
                     rows={8}
-                    className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none focus:ring-1 focus:ring-[#019A67] resize-none font-mono"
+                    className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none focus:ring-1 focus:ring-[#1DB6A0] resize-none font-mono"
                     style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
                   />
                 </div>
@@ -880,7 +880,7 @@ function ClinicAiCard({
                     onClick={save}
                     disabled={saving}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-60"
-                    style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}
+                    style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}
                   >
                     {saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <Check size={14} /> : <Save size={14} />}
                     {saved ? "Salvo!" : "Salvar configurações"}
@@ -956,7 +956,7 @@ export default function AdminAgentePage() {
         <div className="flex items-center gap-3 mb-1">
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 16px rgba(1,154,103,0.3)" }}
+            style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)", boxShadow: "0 0 16px rgba(29,182,160,0.3)" }}
           >
             <Bot size={18} className="text-white" />
           </div>
@@ -972,7 +972,7 @@ export default function AdminAgentePage() {
         className="grid grid-cols-3 gap-4 mb-8"
       >
         {[
-          { label: "Agentes ativos",     value: activeCount,  color: "#019A67" },
+          { label: "Agentes ativos",     value: activeCount,  color: "#1DB6A0" },
           { label: "Config. incompleta", value: partialCount, color: "#f59e0b" },
           { label: "Conversas (24h)",    value: totalConvs,   color: "#6366f1" },
         ].map((s) => (
@@ -992,9 +992,9 @@ export default function AdminAgentePage() {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.1 }}
         className="flex items-start gap-3 p-4 rounded-2xl mb-6"
-        style={{ background: "rgba(1,154,103,0.06)", border: "1px solid rgba(1,154,103,0.2)" }}
+        style={{ background: "rgba(29,182,160,0.06)", border: "1px solid rgba(29,182,160,0.2)" }}
       >
-        <Sparkles size={16} style={{ color: "#019A67", flexShrink: 0, marginTop: 2 }} />
+        <Sparkles size={16} style={{ color: "#1DB6A0", flexShrink: 0, marginTop: 2 }} />
         <div className="text-sm text-z-dim space-y-1">
           <p>O agente responde automaticamente no WhatsApp quando habilitado, com debounce de 8 segundos para agrupar mensagens.</p>
           <p>Ferramentas disponíveis: buscar horários, criar, cancelar e remarcar agendamentos, consultar CRM, listar médicos e tipos de consulta.</p>

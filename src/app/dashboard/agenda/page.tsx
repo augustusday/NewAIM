@@ -38,7 +38,6 @@ import {
   upsertAvailabilityTemplate,
   getAvailableSlots,
   createAppointmentType,
-  updateAppointmentType,
   deleteAppointmentType,
   createDoctor,
   updateDoctor,
@@ -73,11 +72,11 @@ interface Appointment {
 }
 
 const statusColors: Record<string, string> = {
-  confirmed:   "#019A67",
+  confirmed:   "#1DB6A0",
   scheduled:   "#f59e0b",
   cancelled:   "#e05555",
   completed:   "#6b8f78",
-  in_progress: "#01c47f",
+  in_progress: "#22d3c0",
   no_show:     "#e05555",
 };
 
@@ -110,7 +109,7 @@ function mapAppointment(a: AppointmentFull): Appointment {
     type:        a.type_name_snapshot ?? a.appointment_type?.name ?? "Consulta",
     doctor:      a.doctor?.name ?? "—",
     doctorId:    a.doctor?.id ?? "",
-    doctorColor: a.doctor?.color ?? "#019A67",
+    doctorColor: a.doctor?.color ?? "#1DB6A0",
     time:        a.start_time.slice(0, 5),
     endTime:     a.end_time.slice(0, 5),
     status:      a.status,
@@ -224,7 +223,7 @@ function DoctorAvailabilityModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 8 }}
         className="w-full max-w-lg rounded-2xl p-6 space-y-5"
-        style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.18)", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}
+        style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.18)", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -253,8 +252,8 @@ function DoctorAvailabilityModal({
                 key={i}
                 className="rounded-xl p-3 transition-all"
                 style={{
-                  background: day.active ? "rgba(1,154,103,0.06)" : "var(--muted)",
-                  border: day.active ? "1px solid rgba(1,154,103,0.15)" : "1px solid var(--border)",
+                  background: day.active ? "rgba(29,182,160,0.06)" : "var(--muted)",
+                  border: day.active ? "1px solid rgba(29,182,160,0.15)" : "1px solid var(--border)",
                 }}
               >
                 <div className="flex items-center gap-3 mb-2">
@@ -262,7 +261,7 @@ function DoctorAvailabilityModal({
                   <button
                     onClick={() => updateDay(i, { active: !day.active })}
                     className="w-8 h-4 rounded-full transition-all shrink-0 relative"
-                    style={{ background: day.active ? "#019A67" : "rgba(255,255,255,0.1)" }}
+                    style={{ background: day.active ? "#1DB6A0" : "rgba(255,255,255,0.1)" }}
                   >
                     <div
                       className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all"
@@ -273,7 +272,7 @@ function DoctorAvailabilityModal({
                     {DAY_NAMES[i]}
                   </span>
                   {day.active && (
-                    <span className="ml-auto text-[10px] px-2 py-0.5 rounded-lg" style={{ background: "rgba(1,154,103,0.1)", color: "#019A67" }}>
+                    <span className="ml-auto text-[10px] px-2 py-0.5 rounded-lg" style={{ background: "rgba(29,182,160,0.1)", color: "#1DB6A0" }}>
                       {day.slot_duration_min}min/slot
                     </span>
                   )}
@@ -322,7 +321,7 @@ function DoctorAvailabilityModal({
                     <button
                       onClick={() => addPeriod(i)}
                       className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg transition-colors mt-0.5"
-                      style={{ color: "#019A67", background: "rgba(1,154,103,0.07)", border: "1px dashed rgba(1,154,103,0.3)" }}
+                      style={{ color: "#1DB6A0", background: "rgba(29,182,160,0.07)", border: "1px dashed rgba(29,182,160,0.3)" }}
                     >
                       <Plus size={10} /> add break
                     </button>
@@ -344,7 +343,7 @@ function DoctorAvailabilityModal({
             onClick={handleSave}
             disabled={saving || saved}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-70"
-            style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 14px rgba(1,154,103,0.25)" }}
+            style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)", boxShadow: "0 0 14px rgba(29,182,160,0.25)" }}
           >
             {saving ? <RefreshCw size={13} className="animate-spin" /> : saved ? <CheckCircle size={13} /> : <Save size={13} />}
             {saved ? "Salvo!" : "Salvar disponibilidade"}
@@ -356,7 +355,7 @@ function DoctorAvailabilityModal({
 }
 
 // ─── Doctor Management Modal ───────────────────────────────────────────────────
-const DOCTOR_COLORS = ["#019A67","#3b82f6","#8b5cf6","#f59e0b","#e05555","#06b6d4","#ec4899","#10b981"];
+const DOCTOR_COLORS = ["#1DB6A0","#3b82f6","#8b5cf6","#f59e0b","#e05555","#06b6d4","#ec4899","#10b981"];
 
 interface DoctorForm {
   name: string;
@@ -478,13 +477,13 @@ function DoctorManagementModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 8 }}
         className="w-full max-w-xl rounded-2xl flex flex-col"
-        style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.18)", boxShadow: "0 24px 64px rgba(0,0,0,0.6)", maxHeight: "90vh" }}
+        style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.18)", boxShadow: "0 24px 64px rgba(0,0,0,0.6)", maxHeight: "90vh" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(1,154,103,0.12)", border: "1px solid rgba(1,154,103,0.2)" }}>
-              <Stethoscope size={14} style={{ color: "#019A67" }} />
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(29,182,160,0.12)", border: "1px solid rgba(29,182,160,0.2)" }}>
+              <Stethoscope size={14} style={{ color: "#1DB6A0" }} />
             </div>
             <h3 className="text-sm font-medium text-z-text">Gerenciar Médicos</h3>
           </div>
@@ -503,9 +502,9 @@ function DoctorManagementModal({
             <button key={t.key} onClick={() => { setTab(t.key as typeof tab); if (t.key !== "add") { setEditingId(null); setForm(emptyDoctorForm()); } }}
               className="px-3 py-1.5 rounded-lg text-xs transition-all"
               style={{
-                background: tab === t.key ? "rgba(1,154,103,0.15)" : "var(--muted)",
-                border: tab === t.key ? "1px solid rgba(1,154,103,0.3)" : "1px solid var(--border)",
-                color: tab === t.key ? "#01c47f" : "var(--z-text-dim)",
+                background: tab === t.key ? "rgba(29,182,160,0.15)" : "var(--muted)",
+                border: tab === t.key ? "1px solid rgba(29,182,160,0.3)" : "1px solid var(--border)",
+                color: tab === t.key ? "#22d3c0" : "var(--z-text-dim)",
               }}>
               {t.label}
             </button>
@@ -520,12 +519,12 @@ function DoctorManagementModal({
                 <div className="text-center py-10">
                   <Stethoscope size={28} className="text-z-faint mx-auto mb-3" />
                   <p className="text-sm text-z-dim">Nenhum médico cadastrado</p>
-                  <button onClick={() => setTab("add")} className="mt-3 text-xs text-[#019A67] hover:text-[#01c47f]">Adicionar o primeiro médico →</button>
+                  <button onClick={() => setTab("add")} className="mt-3 text-xs text-[#1DB6A0] hover:text-[#22d3c0]">Adicionar o primeiro médico →</button>
                 </div>
               )}
               {list.map((doc) => (
                 <div key={doc.id} className="flex items-center gap-3 px-3 py-3 rounded-xl"
-                  style={{ background: "var(--surface-2)", border: "1px solid rgba(1,154,103,0.08)" }}>
+                  style={{ background: "var(--surface-2)", border: "1px solid rgba(29,182,160,0.08)" }}>
                   <div className="w-3 h-3 rounded-full shrink-0" style={{ background: doc.color }} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-z-text truncate">{doc.name}</p>
@@ -533,7 +532,7 @@ function DoctorManagementModal({
                       {doc.specialty && <span className="text-xs text-z-dim">{doc.specialty}</span>}
                       {doc.crm_number && <span className="text-xs text-z-faint">CRM {doc.crm_number}</span>}
                       {doc.consultation_fee != null && (
-                        <span className="text-xs" style={{ color: "#019A67" }}>R$ {Number(doc.consultation_fee).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                        <span className="text-xs" style={{ color: "#1DB6A0" }}>R$ {Number(doc.consultation_fee).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                       )}
                       {(doc.insurance_plans ?? []).length > 0 && (
                         <span className="text-xs text-z-faint">{doc.insurance_plans.join(", ")}</span>
@@ -542,10 +541,10 @@ function DoctorManagementModal({
                     {doc.observations && <p className="text-xs text-z-faint mt-0.5 truncate">{doc.observations}</p>}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => onSchedule(doc)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#019A67] transition-colors" title="Horários">
+                    <button onClick={() => onSchedule(doc)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#1DB6A0] transition-colors" title="Horários">
                       <Clock size={13} />
                     </button>
-                    <button onClick={() => startEdit(doc)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#019A67] transition-colors" title="Editar">
+                    <button onClick={() => startEdit(doc)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#1DB6A0] transition-colors" title="Editar">
                       <Pencil size={13} />
                     </button>
                     <button onClick={() => handleDelete(doc.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#e05555] transition-colors" title="Remover">
@@ -555,7 +554,7 @@ function DoctorManagementModal({
                 </div>
               ))}
               <button onClick={() => setTab("add")}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-z-dim border border-dashed transition-all hover:text-[#019A67] hover:border-[rgba(1,154,103,0.4)]"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-z-dim border border-dashed transition-all hover:text-[#1DB6A0] hover:border-[rgba(29,182,160,0.4)]"
                 style={{ borderColor: "var(--border)" }}>
                 <Plus size={14} /> Adicionar médico
               </button>
@@ -571,14 +570,14 @@ function DoctorManagementModal({
                   <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     placeholder="Dr. João Silva"
                     className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
-                    style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+                    style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }} />
                 </div>
                 <div>
                   <label className="text-xs text-z-dim block mb-1.5">Especialidade</label>
                   <input value={form.specialty} onChange={(e) => setForm((f) => ({ ...f, specialty: e.target.value }))}
                     placeholder="Cardiologia"
                     className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
-                    style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+                    style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -587,14 +586,14 @@ function DoctorManagementModal({
                   <input value={form.crm_number} onChange={(e) => setForm((f) => ({ ...f, crm_number: e.target.value }))}
                     placeholder="SP-123456"
                     className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
-                    style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+                    style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }} />
                 </div>
                 <div>
                   <label className="text-xs text-z-dim block mb-1.5">Valor consulta particular (R$)</label>
                   <input value={form.consultation_fee} onChange={(e) => setForm((f) => ({ ...f, consultation_fee: e.target.value }))}
                     placeholder="250,00" type="number" min="0" step="0.01"
                     className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
-                    style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+                    style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }} />
                 </div>
               </div>
               <div>
@@ -602,14 +601,14 @@ function DoctorManagementModal({
                 <input value={form.insurance_plans} onChange={(e) => setForm((f) => ({ ...f, insurance_plans: e.target.value }))}
                   placeholder="Unimed, Bradesco Saúde, SulAmérica"
                   className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
-                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+                  style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }} />
               </div>
               <div>
                 <label className="text-xs text-z-dim block mb-1.5">Observações (opcional)</label>
                 <textarea value={form.observations} onChange={(e) => setForm((f) => ({ ...f, observations: e.target.value }))}
                   placeholder="Informações adicionais sobre o médico..." rows={2}
                   className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none resize-none"
-                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+                  style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }} />
               </div>
               <div>
                 <label className="text-xs text-z-dim block mb-1.5">Cor na agenda</label>
@@ -624,13 +623,13 @@ function DoctorManagementModal({
               <div className="flex gap-2 pt-1">
                 <button onClick={() => { setTab("list"); setEditingId(null); setForm(emptyDoctorForm()); }}
                   className="flex-1 py-2.5 rounded-xl text-sm text-z-dim"
-                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+                  style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}>
                   Cancelar
                 </button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                   onClick={handleSave} disabled={saving || !form.name.trim()}
                   className="flex-1 py-2.5 rounded-xl text-sm text-white font-medium disabled:opacity-50"
-                  style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+                  style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}>
                   {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Cadastrar médico"}
                 </motion.button>
               </div>
@@ -640,7 +639,7 @@ function DoctorManagementModal({
           {/* BULK TAB */}
           {tab === "bulk" && (
             <div className="space-y-4">
-              <div className="px-3 py-3 rounded-xl text-xs text-z-dim space-y-1" style={{ background: "rgba(1,154,103,0.06)", border: "1px solid rgba(1,154,103,0.12)" }}>
+              <div className="px-3 py-3 rounded-xl text-xs text-z-dim space-y-1" style={{ background: "rgba(29,182,160,0.06)", border: "1px solid rgba(29,182,160,0.12)" }}>
                 <p className="font-medium text-z-text">Formato por linha:</p>
                 <p>Nome; Especialidade; CRM; Convênio 1 | Convênio 2; Valor particular</p>
                 <p className="text-z-faint">Exemplo:</p>
@@ -656,20 +655,20 @@ function DoctorManagementModal({
                   rows={8}
                   placeholder={"Dr. Ana Lima; Cardiologia; SP-123456; Unimed | Bradesco; 350\nDr. Pedro Costa; Ortopedia; RJ-789; ; 200"}
                   className="w-full px-3 py-2.5 rounded-xl text-sm font-mono text-z-text placeholder:text-z-faint outline-none resize-none"
-                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+                  style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
                 />
               </div>
               {bulkResult && (
                 <div className="px-3 py-2.5 rounded-xl text-xs space-y-1"
-                  style={{ background: bulkResult.errors.length ? "rgba(224,85,85,0.06)" : "rgba(1,154,103,0.06)", border: `1px solid ${bulkResult.errors.length ? "rgba(224,85,85,0.2)" : "rgba(1,154,103,0.2)"}` }}>
-                  <p style={{ color: "#01c47f" }}>{bulkResult.ok} médico(s) importado(s) com sucesso</p>
+                  style={{ background: bulkResult.errors.length ? "rgba(224,85,85,0.06)" : "rgba(29,182,160,0.06)", border: `1px solid ${bulkResult.errors.length ? "rgba(224,85,85,0.2)" : "rgba(29,182,160,0.2)"}` }}>
+                  <p style={{ color: "#22d3c0" }}>{bulkResult.ok} médico(s) importado(s) com sucesso</p>
                   {bulkResult.errors.map((e, i) => <p key={i} style={{ color: "#e05555" }}>{e}</p>)}
                 </div>
               )}
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                 onClick={handleBulkImport} disabled={bulkSaving || !bulkText.trim()}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-white font-medium disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+                style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}>
                 <Upload size={14} />
                 {bulkSaving ? "Importando..." : "Importar médicos"}
               </motion.button>
@@ -696,7 +695,7 @@ function AppointmentTypesModal({
   const [list, setList] = useState<AppointmentType[]>(types);
   const [newName, setNewName] = useState("");
   const [newDur, setNewDur] = useState(30);
-  const [newColor, setNewColor] = useState("#019A67");
+  const [newColor, setNewColor] = useState("#1DB6A0");
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async () => {
@@ -722,11 +721,11 @@ function AppointmentTypesModal({
       <motion.div initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 16 }} transition={{ duration: 0.2 }}
         className="relative w-full max-w-md rounded-2xl p-6 shadow-2xl z-10"
-        style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.2)" }}
+        style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.2)" }}
       >
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-medium text-z-text">Tipos de consulta</h2>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)] transition-all">
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(29,182,160,0.08)] transition-all">
             <X size={15} />
           </button>
         </div>
@@ -736,7 +735,7 @@ function AppointmentTypesModal({
           {list.length === 0 && <p className="text-xs text-z-faint text-center py-3">Nenhum tipo cadastrado</p>}
           {list.map((t) => (
             <div key={t.id} className="flex items-center justify-between px-3 py-2 rounded-xl"
-              style={{ background: "var(--surface-2)", border: "1px solid rgba(1,154,103,0.08)" }}>
+              style={{ background: "var(--surface-2)", border: "1px solid rgba(29,182,160,0.08)" }}>
               <div className="flex items-center gap-2.5">
                 <div className="w-3 h-3 rounded-full shrink-0" style={{ background: t.color }} />
                 <span className="text-sm text-z-text">{t.name}</span>
@@ -758,7 +757,7 @@ function AppointmentTypesModal({
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Nome do tipo"
               className="flex-1 px-3 py-2 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+              style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
             />
             <input type="color" value={newColor} onChange={(e) => setNewColor(e.target.value)}
               className="w-10 h-9 rounded-lg cursor-pointer border-0 p-0.5" style={{ background: "var(--input)" }} />
@@ -770,9 +769,9 @@ function AppointmentTypesModal({
                 <button key={d} type="button" onClick={() => setNewDur(d)}
                   className="px-2.5 py-1 rounded-lg text-xs transition-all"
                   style={{
-                    background: newDur === d ? "rgba(1,154,103,0.15)" : "var(--input)",
-                    border: newDur === d ? "1px solid rgba(1,154,103,0.4)" : "1px solid rgba(1,154,103,0.1)",
-                    color: newDur === d ? "#01c47f" : "var(--z-text-dim)",
+                    background: newDur === d ? "rgba(29,182,160,0.15)" : "var(--input)",
+                    border: newDur === d ? "1px solid rgba(29,182,160,0.4)" : "1px solid rgba(29,182,160,0.1)",
+                    color: newDur === d ? "#22d3c0" : "var(--z-text-dim)",
                   }}>
                   {d}
                 </button>
@@ -782,7 +781,7 @@ function AppointmentTypesModal({
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
             onClick={handleCreate} disabled={saving || !newName.trim()}
             className="w-full py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50"
-            style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+            style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}>
             {saving ? "Salvando..." : "Criar tipo"}
           </motion.button>
         </div>
@@ -831,9 +830,14 @@ function NewAppointmentDialog({
   // Search contacts when user types
   useEffect(() => {
     const q = contactSearch.trim();
-    if (q.length < 2) { setContactResults([]); return; }
-    setContactSearching(true);
     const timer = setTimeout(async () => {
+      if (q.length < 2) {
+        setContactResults([]);
+        setContactSearching(false);
+        return;
+      }
+
+      setContactSearching(true);
       const { data } = await supabase
         .from("contacts")
         .select("id, full_name, phone")
@@ -854,15 +858,23 @@ function NewAppointmentDialog({
   // Load slots when doctor or date changes
   useEffect(() => {
     if (!form.doctor_id || !form.scheduled_date) return;
-    setLoadingSlots(true);
-    getAvailableSlots(clinicId, form.doctor_id, form.scheduled_date).then((slots) => {
-      setAvailableSlots(slots);
-      if (slots.length > 0 && !slots.includes(form.start_time)) {
-        setForm((f) => ({ ...f, start_time: slots[0] }));
-      }
-      setLoadingSlots(false);
-    });
-  }, [form.doctor_id, form.scheduled_date, clinicId]);
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setLoadingSlots(true);
+      getAvailableSlots(clinicId, form.doctor_id, form.scheduled_date).then((slots) => {
+        if (cancelled) return;
+        setAvailableSlots(slots);
+        if (slots.length > 0 && !slots.includes(form.start_time)) {
+          setForm((f) => ({ ...f, start_time: slots[0] }));
+        }
+        setLoadingSlots(false);
+      });
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [form.doctor_id, form.scheduled_date, form.start_time, clinicId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -917,7 +929,7 @@ function NewAppointmentDialog({
       type:        selectedType?.name ?? "Consulta",
       doctor:      doctor?.name ?? "—",
       doctorId:    doctor?.id ?? "",
-      doctorColor: doctor?.color ?? "#019A67",
+      doctorColor: doctor?.color ?? "#1DB6A0",
       time:        appt.start_time.slice(0, 5),
       endTime:     appt.end_time.slice(0, 5),
       status:      appt.status,
@@ -944,11 +956,11 @@ function NewAppointmentDialog({
         exit={{ opacity: 0, scale: 0.95, y: 16 }}
         transition={{ duration: 0.2 }}
         className="relative w-full max-w-lg rounded-2xl p-6 shadow-2xl z-10"
-        style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.2)" }}
+        style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.2)" }}
       >
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-medium text-z-text">Novo agendamento</h2>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)] transition-all">
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(29,182,160,0.08)] transition-all">
             <X size={15} />
           </button>
         </div>
@@ -960,7 +972,7 @@ function NewAppointmentDialog({
             {form.contact_id ? (
               // Selected contact pill
               <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
-                style={{ background: "rgba(1,154,103,0.08)", border: "1px solid rgba(1,154,103,0.25)" }}>
+                style={{ background: "rgba(29,182,160,0.08)", border: "1px solid rgba(29,182,160,0.25)" }}>
                 <span className="text-sm flex-1" style={{ color: "var(--z-text)" }}>{form.patient_name}</span>
                 {form.patient_phone && (
                   <span className="text-xs" style={{ color: "var(--z-text-dim)" }}>{form.patient_phone}</span>
@@ -982,7 +994,7 @@ function NewAppointmentDialog({
                   onFocus={() => setContactSearchOpen(true)}
                   placeholder="Buscar por nome ou telefone..."
                   className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
-                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+                  style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
                 />
                 {contactSearching && (
                   <RefreshCw size={13} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-z-dim" />
@@ -1002,11 +1014,11 @@ function NewAppointmentDialog({
                         }}
                         className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all"
                         style={{ color: "var(--z-text)" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(1,154,103,0.06)")}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(29,182,160,0.06)")}
                         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
                         <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold text-white shrink-0"
-                          style={{ background: "linear-gradient(135deg,#019A67,#01c47f)" }}>
+                          style={{ background: "linear-gradient(135deg,#1DB6A0,#22d3c0)" }}>
                           {c.full_name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1025,12 +1037,12 @@ function NewAppointmentDialog({
                           setContactSearchOpen(false);
                         }}
                         className="w-full flex items-center gap-2 px-3 py-2.5 text-left text-sm border-t transition-all"
-                        style={{ color: "#019A67", borderColor: "var(--border)" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(1,154,103,0.06)")}
+                        style={{ color: "#1DB6A0", borderColor: "var(--border)" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(29,182,160,0.06)")}
                         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
                         <Plus size={13} />
-                        Criar contato "{contactSearch.trim()}"
+                        Criar contato &quot;{contactSearch.trim()}&quot;
                       </button>
                     )}
                   </div>
@@ -1050,7 +1062,7 @@ function NewAppointmentDialog({
                 onChange={(e) => setForm((f) => ({ ...f, patient_phone: e.target.value }))}
                 placeholder="+55 11 99999-9999"
                 className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
-                style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+                style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
               />
             </div>
 
@@ -1061,7 +1073,7 @@ function NewAppointmentDialog({
                 value={form.type_id}
                 onChange={(e) => setForm((f) => ({ ...f, type_id: e.target.value }))}
                 className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none"
-                style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+                style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
               >
                 {appointmentTypes.map((t) => (
                   <option key={t.id} value={t.id}>{t.name} ({t.duration_minutes}min)</option>
@@ -1083,7 +1095,7 @@ function NewAppointmentDialog({
                   className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs transition-all"
                   style={{
                     background: form.doctor_id === doc.id ? `${doc.color}15` : "var(--input)",
-                    border: form.doctor_id === doc.id ? `1px solid ${doc.color}40` : "1px solid rgba(1,154,103,0.1)",
+                    border: form.doctor_id === doc.id ? `1px solid ${doc.color}40` : "1px solid rgba(29,182,160,0.1)",
                     color: form.doctor_id === doc.id ? doc.color : "var(--z-text-dim)",
                   }}
                 >
@@ -1103,7 +1115,7 @@ function NewAppointmentDialog({
                 value={form.scheduled_date}
                 onChange={(e) => setForm((f) => ({ ...f, scheduled_date: e.target.value }))}
                 className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none"
-                style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+                style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
               />
             </div>
 
@@ -1119,9 +1131,9 @@ function NewAppointmentDialog({
                       onClick={() => setForm((f) => ({ ...f, start_time: slot }))}
                       className="px-2.5 py-1 rounded-lg text-xs transition-all"
                       style={{
-                        background: form.start_time === slot ? "rgba(1,154,103,0.2)" : "var(--input)",
-                        border: form.start_time === slot ? "1px solid rgba(1,154,103,0.5)" : "1px solid rgba(1,154,103,0.1)",
-                        color: form.start_time === slot ? "#01c47f" : "var(--z-text-dim)",
+                        background: form.start_time === slot ? "rgba(29,182,160,0.2)" : "var(--input)",
+                        border: form.start_time === slot ? "1px solid rgba(29,182,160,0.5)" : "1px solid rgba(29,182,160,0.1)",
+                        color: form.start_time === slot ? "#22d3c0" : "var(--z-text-dim)",
                       }}
                     >
                       {slot}
@@ -1137,7 +1149,7 @@ function NewAppointmentDialog({
                   max="17:30"
                   step="1800"
                   className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none"
-                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+                  style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
                   placeholder={loadingSlots ? "Carregando..." : "Sem horários disponíveis"}
                 />
               )}
@@ -1153,7 +1165,7 @@ function NewAppointmentDialog({
               placeholder="Informações adicionais..."
               rows={2}
               className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none resize-none"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+              style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
             />
           </div>
 
@@ -1168,7 +1180,7 @@ function NewAppointmentDialog({
               type="button"
               onClick={onClose}
               className="flex-1 py-2.5 rounded-xl text-sm text-z-dim"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}
+              style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}
             >
               Cancelar
             </button>
@@ -1178,7 +1190,7 @@ function NewAppointmentDialog({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="flex-1 py-2.5 rounded-xl text-sm text-white font-medium disabled:opacity-60"
-              style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}
+              style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}
             >
               {saving ? "Agendando..." : "Confirmar agendamento"}
             </motion.button>
@@ -1201,7 +1213,6 @@ export default function AgendaPage() {
   const [rawAppointments, setRawAppointments]         = useState<AppointmentFull[]>([]);
   const [doctors, setDoctors]             = useState<Doctor[]>([]);
   const [appointmentTypes, setApptTypes]  = useState<AppointmentType[]>([]);
-  const [loading, setLoading]             = useState(true);
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [activeDoctorFilter, setActiveDoctorFilter] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -1221,19 +1232,16 @@ export default function AgendaPage() {
 
   useEffect(() => {
     if (!clinicLoaded) return;
-    setLoading(true);
     if (view === "day") {
       getAppointmentsForDate(clinicId, selectedDate).then((data) => {
         setRawAppointments(data);
-        setLoading(false);
       });
     } else {
       getAppointmentsForWeek(clinicId, weekDates[0], weekDates[6]).then((data) => {
         setRawAppointments(data);
-        setLoading(false);
       });
     }
-  }, [clinicId, clinicLoaded, selectedDate, view]);
+  }, [clinicId, clinicLoaded, selectedDate, view, weekDates]);
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay    = getFirstDayOfMonth(currentYear, currentMonth);
@@ -1300,184 +1308,223 @@ export default function AgendaPage() {
 
   // appointments with dots in mini-calendar
   const datesWithAppts = new Set(allAppointments.map((a) => a.date));
+  const confirmedToday = dayAppointments.filter((appt) => getEffectiveStatus(appt) === "confirmed").length;
+  const inProgressToday = dayAppointments.filter((appt) => getEffectiveStatus(appt) === "in_progress").length;
+  const occupiedDoctors = new Set(dayAppointments.map((appt) => appt.doctorId).filter(Boolean)).size;
 
   return (
-    <div className="flex h-full">
-      {/* ── Left panel ─────────────────────────────────────────────────── */}
+    <div className="flex h-full gap-4 bg-mesh p-4">
       <div
-        className="w-64 flex flex-col border-r border-border shrink-0 overflow-y-auto"
-        style={{ background: "var(--surface-2)" }}
+        className="w-[18.5rem] shrink-0 overflow-y-auto rounded-[30px] border"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,0.94) 0%, var(--surface-1) 100%)",
+          borderColor: "rgba(29,182,160,0.12)",
+          boxShadow: "var(--z-shadow-md)",
+        }}
       >
-        {/* Mini calendar */}
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={prevMonth} className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:text-[#019A67] hover:bg-[rgba(1,154,103,0.1)] transition-all">
-              <ChevronLeft size={13} />
-            </button>
-            <span className="text-xs font-medium text-z-text">{MONTHS[currentMonth]} {currentYear}</span>
-            <button onClick={nextMonth} className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:text-[#019A67] hover:bg-[rgba(1,154,103,0.1)] transition-all">
-              <ChevronRight size={13} />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-7 mb-1">
-            {DAYS.map((d) => (
-              <div key={d} className="text-center text-[9px] text-z-faint py-1 font-medium">{d[0]}</div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-0.5">
-            {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1;
-              const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
-              const isSelected = day === selectedDay && currentMonth === currentMonth && currentYear === currentYear;
-              const dateStr = new Date(currentYear, currentMonth, day).toISOString().split("T")[0];
-              const hasAppt = datesWithAppts.has(dateStr);
-
-              return (
-                <motion.button
-                  key={day}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setSelectedDay(day)}
-                  className={cn(
-                    "relative w-7 h-7 rounded-lg text-[11px] flex items-center justify-center mx-auto transition-all duration-200",
-                    isSelected ? "text-white font-medium" : isToday ? "text-[#01c47f] font-medium" : "text-z-dim hover:text-z-dim"
-                  )}
-                  style={
-                    isSelected
-                      ? { background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 10px rgba(1,154,103,0.3)" }
-                      : isToday ? { background: "rgba(1,154,103,0.15)" } : {}
-                  }
-                >
-                  {day}
-                  {hasAppt && !isSelected && (
-                    <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full" style={{ background: "#019A67" }} />
-                  )}
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Doctors filter */}
-        <div className="px-4 pb-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Stethoscope size={12} className="text-z-dim" />
-            <span className="text-[10px] text-z-dim uppercase tracking-widest font-medium">Médicos</span>
-            {activeDoctorFilter && (
-              <button
-                onClick={() => setActiveDoctorFilter(null)}
-                className="ml-auto text-[10px] text-[#019A67] hover:text-[#01c47f]"
-              >
-                Limpar
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            {doctors.map((doc) => {
-              const count = allAppointments.filter((a) => a.doctorId === doc.id && a.date === selectedDate).length;
-              const isActive = activeDoctorFilter === doc.id;
-              return (
-                <div
-                  key={doc.id}
-                  className="group w-full flex items-center gap-2.5 px-2 py-2 rounded-xl transition-all"
-                  style={{
-                    background: isActive ? `${doc.color}12` : "transparent",
-                    border: isActive ? `1px solid ${doc.color}30` : "1px solid transparent",
-                  }}
-                >
-                  <button
-                    className="flex items-center gap-2 flex-1 text-left"
-                    onClick={() => setActiveDoctorFilter(isActive ? null : doc.id)}
-                  >
-                    <div className="w-3 h-3 rounded-sm shrink-0" style={{ background: doc.color }} />
-                    <span className="text-xs text-z-dim flex-1 truncate">{doc.name}</span>
-                    <span className="text-[10px] text-z-faint">{count}</span>
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setAvailabilityDoctor(doc); }}
-                    className="w-5 h-5 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all text-z-faint hover:text-[#019A67]"
-                    title="Editar disponibilidade"
-                  >
-                    <Settings2 size={11} />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Quick stats */}
-        <div className="mt-auto px-4 pb-4">
+        <div className="p-4 space-y-4">
           <div
-            className="rounded-xl p-3 space-y-2"
-            style={{ background: "rgba(1,154,103,0.06)", border: "1px solid rgba(1,154,103,0.12)" }}
+            className="rounded-[26px] p-4"
+            style={{
+              background: "linear-gradient(160deg, rgba(29,182,160,0.14) 0%, rgba(29,182,160,0.04) 100%)",
+              border: "1px solid rgba(29,182,160,0.12)",
+            }}
           >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-z-dim">Hoje</span>
-              <span className="text-xs font-medium text-[#01c47f]">{dayAppointments.length} consultas</span>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#1DB6A0" }}>
+              Operação do dia
+            </p>
+            <h1 className="text-[22px] leading-none mt-2" style={{ color: "var(--z-text)", fontFamily: "var(--font-display)", fontWeight: 600 }}>
+              Agenda
+            </h1>
+            <p className="text-xs mt-2" style={{ color: "var(--z-text-dim)" }}>
+              Visão clínica mais modular, com foco em fluxo, ocupação e leitura rápida.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              {[
+                { label: "Consultas", value: dayAppointments.length },
+                { label: "Confirmadas", value: confirmedToday },
+                { label: "Em curso", value: inProgressToday },
+                { label: "Médicos", value: occupiedDoctors },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-2xl px-3 py-2.5"
+                  style={{ background: "rgba(255,255,255,0.72)", border: "1px solid rgba(29,182,160,0.08)" }}
+                >
+                  <p className="text-[10px] uppercase tracking-[0.15em]" style={{ color: "var(--z-text-faint)" }}>
+                    {item.label}
+                  </p>
+                  <p className="text-base mt-1" style={{ color: "var(--z-text)", fontWeight: 600 }}>
+                    {item.value}
+                  </p>
+                </div>
+              ))}
             </div>
-            <div className="w-full h-1 rounded-full bg-[rgba(1,154,103,0.1)]">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min((dayAppointments.length / 10) * 100, 100)}%` }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="h-full rounded-full"
-                style={{ background: "linear-gradient(90deg, #019A67, #01c47f)" }}
-              />
+          </div>
+
+          <div
+            className="rounded-[26px] p-4"
+            style={{ background: "rgba(255,255,255,0.72)", border: "1px solid rgba(29,182,160,0.08)" }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={prevMonth} className="w-7 h-7 rounded-xl flex items-center justify-center text-z-dim hover:text-[#1DB6A0] hover:bg-[rgba(29,182,160,0.1)] transition-all">
+                <ChevronLeft size={13} />
+              </button>
+              <span className="text-xs font-medium text-z-text">{MONTHS[currentMonth]} {currentYear}</span>
+              <button onClick={nextMonth} className="w-7 h-7 rounded-xl flex items-center justify-center text-z-dim hover:text-[#1DB6A0] hover:bg-[rgba(29,182,160,0.1)] transition-all">
+                <ChevronRight size={13} />
+              </button>
             </div>
-            <p className="text-[10px] text-z-faint">{Math.max(10 - dayAppointments.length, 0)} horários livres (estimado)</p>
+
+            <div className="grid grid-cols-7 mb-1">
+              {DAYS.map((d) => (
+                <div key={d} className="text-center text-[9px] text-z-faint py-1 font-medium">{d[0]}</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+                const isSelected = day === selectedDay;
+                const dateStr = new Date(currentYear, currentMonth, day).toISOString().split("T")[0];
+                const hasAppt = datesWithAppts.has(dateStr);
+
+                return (
+                  <motion.button
+                    key={day}
+                    whileHover={{ scale: 1.06 }}
+                    whileTap={{ scale: 0.94 }}
+                    onClick={() => setSelectedDay(day)}
+                    className={cn(
+                      "relative w-8 h-8 rounded-xl text-[11px] flex items-center justify-center mx-auto transition-all duration-200",
+                      isSelected ? "text-white font-medium" : isToday ? "text-[#22d3c0] font-medium" : "text-z-dim hover:text-z-dim"
+                    )}
+                    style={
+                      isSelected
+                        ? { background: "linear-gradient(135deg, #1DB6A0, #19a896)", boxShadow: "0 0 10px rgba(29,182,160,0.3)" }
+                        : isToday ? { background: "rgba(29,182,160,0.15)" } : { background: "rgba(245,247,250,0.9)" }
+                    }
+                  >
+                    {day}
+                    {hasAppt && !isSelected && (
+                      <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full" style={{ background: "#1DB6A0" }} />
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div
+            className="rounded-[26px] p-4"
+            style={{ background: "rgba(255,255,255,0.72)", border: "1px solid rgba(29,182,160,0.08)" }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Stethoscope size={12} className="text-z-dim" />
+              <span className="text-[10px] text-z-dim uppercase tracking-widest font-medium">Médicos</span>
+              {activeDoctorFilter && (
+                <button onClick={() => setActiveDoctorFilter(null)} className="ml-auto text-[10px] text-[#1DB6A0] hover:text-[#22d3c0]">
+                  Limpar
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              {doctors.map((doc) => {
+                const count = allAppointments.filter((a) => a.doctorId === doc.id && a.date === selectedDate).length;
+                const isActive = activeDoctorFilter === doc.id;
+                return (
+                  <div
+                    key={doc.id}
+                    className="group w-full flex items-center gap-2.5 px-3 py-2.5 rounded-2xl transition-all"
+                    style={{
+                      background: isActive ? `${doc.color}12` : "rgba(245,247,250,0.9)",
+                      border: isActive ? `1px solid ${doc.color}30` : "1px solid rgba(29,182,160,0.06)",
+                    }}
+                  >
+                    <button className="flex items-center gap-2 flex-1 text-left" onClick={() => setActiveDoctorFilter(isActive ? null : doc.id)}>
+                      <div className="w-3 h-3 rounded-sm shrink-0" style={{ background: doc.color }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-z-dim truncate">{doc.name}</p>
+                        <p className="text-[10px] text-z-faint mt-0.5">{count} consultas no dia</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setAvailabilityDoctor(doc); }}
+                      className="w-7 h-7 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all text-z-faint hover:text-[#1DB6A0]"
+                      title="Editar disponibilidade"
+                    >
+                      <Settings2 size={11} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Main calendar ──────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
+      <div
+        className="min-w-0 flex-1 flex flex-col overflow-hidden rounded-[30px] border"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, var(--surface-1) 100%)",
+          borderColor: "rgba(29,182,160,0.12)",
+          boxShadow: "var(--z-shadow-md)",
+        }}
+      >
         <div
-          className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0"
-          style={{ background: "var(--surface-2)", backdropFilter: "blur(20px)" }}
+          className="flex items-center justify-between px-6 py-5 border-b shrink-0"
+          style={{
+            borderColor: "rgba(29,182,160,0.1)",
+            background: "linear-gradient(180deg, rgba(29,182,160,0.06) 0%, rgba(29,182,160,0.01) 100%)",
+          }}
         >
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
-              <button onClick={prevDay} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#019A67] hover:bg-[rgba(1,154,103,0.1)] transition-all">
+          <div className="flex items-start gap-3">
+            <div className="flex items-center gap-1 mt-0.5">
+              <button onClick={prevDay} className="w-8 h-8 rounded-xl flex items-center justify-center text-z-dim hover:text-[#1DB6A0] hover:bg-[rgba(29,182,160,0.1)] transition-all">
                 <ChevronLeft size={14} />
               </button>
-              <button onClick={nextDay} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#019A67] hover:bg-[rgba(1,154,103,0.1)] transition-all">
+              <button onClick={nextDay} className="w-8 h-8 rounded-xl flex items-center justify-center text-z-dim hover:text-[#1DB6A0] hover:bg-[rgba(29,182,160,0.1)] transition-all">
                 <ChevronRight size={14} />
               </button>
             </div>
             <div>
-              <h2 className="text-base font-medium text-z-text">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#1DB6A0" }}>
+                Painel assistencial
+              </p>
+              <h2 className="text-[22px] mt-2 leading-none" style={{ color: "var(--z-text)", fontFamily: "var(--font-display)", fontWeight: 600 }}>
                 {view === "day"
                   ? `${DAYS[new Date(currentYear, currentMonth, selectedDay).getDay()]}, ${selectedDay} de ${MONTHS[currentMonth]}`
                   : `Semana de ${new Date(weekDates[0] + "T12:00:00").getDate()} de ${MONTHS[new Date(weekDates[0] + "T12:00:00").getMonth()]}`}
               </h2>
-              <p className="text-xs text-z-dim mt-0.5">
-                {view === "day"
-                  ? `${dayAppointments.length} consultas agendadas`
-                  : `${allAppointments.length} consultas na semana`}
-                {activeDoctorFilter && ` · ${doctors.find((d) => d.id === activeDoctorFilter)?.name}`}
-              </p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <span className="px-2.5 py-1 rounded-full text-[10px]" style={{ background: "rgba(255,255,255,0.8)", border: "1px solid rgba(29,182,160,0.08)", color: "var(--z-text-dim)" }}>
+                  {view === "day" ? `${dayAppointments.length} consultas` : `${allAppointments.length} na semana`}
+                </span>
+                {activeDoctorFilter && (
+                  <span className="px-2.5 py-1 rounded-full text-[10px]" style={{ background: "rgba(29,182,160,0.12)", color: "#1DB6A0" }}>
+                    {doctors.find((d) => d.id === activeDoctorFilter)?.name}
+                  </span>
+                )}
+                <span className="px-2.5 py-1 rounded-full text-[10px]" style={{ background: "rgba(255,255,255,0.8)", border: "1px solid rgba(29,182,160,0.08)", color: "var(--z-text-dim)" }}>
+                  {Math.max(10 - dayAppointments.length, 0)} horários livres estimados
+                </span>
+              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* View toggle */}
-            <div
-              className="flex items-center p-0.5 rounded-xl"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}
-            >
+            <div className="flex items-center p-0.5 rounded-xl" style={{ background: "rgba(255,255,255,0.8)", border: "1px solid rgba(29,182,160,0.1)" }}>
               {(["day", "week"] as const).map((v) => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-xs transition-all duration-200",
-                    view === v ? "text-[#01c47f] bg-[rgba(1,154,103,0.15)]" : "text-z-dim hover:text-z-dim"
+                    view === v ? "text-[#22d3c0] bg-[rgba(29,182,160,0.15)]" : "text-z-dim hover:text-z-dim"
                   )}
                 >
                   {v === "day" ? "Dia" : "Semana"}
@@ -1489,9 +1536,9 @@ export default function AgendaPage() {
               onClick={() => setActiveDoctorFilter(activeDoctorFilter ? null : doctors[0]?.id ?? null)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs transition-all"
               style={{
-                background: activeDoctorFilter ? "rgba(1,154,103,0.1)" : "var(--input)",
-                border: activeDoctorFilter ? "1px solid rgba(1,154,103,0.2)" : "1px solid rgba(1,154,103,0.1)",
-                color: activeDoctorFilter ? "#019A67" : "var(--z-text-dim)",
+                background: activeDoctorFilter ? "rgba(29,182,160,0.1)" : "rgba(255,255,255,0.8)",
+                border: activeDoctorFilter ? "1px solid rgba(29,182,160,0.2)" : "1px solid rgba(29,182,160,0.1)",
+                color: activeDoctorFilter ? "#1DB6A0" : "var(--z-text-dim)",
               }}
             >
               <Filter size={12} />
@@ -1501,7 +1548,7 @@ export default function AgendaPage() {
             <button
               onClick={() => setShowDoctorsModal(true)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-z-dim transition-all"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}
+              style={{ background: "rgba(255,255,255,0.8)", border: "1px solid rgba(29,182,160,0.1)" }}
             >
               <UserPlus size={14} />
               Médicos
@@ -1510,7 +1557,7 @@ export default function AgendaPage() {
             <button
               onClick={() => setShowTypesModal(true)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-z-dim transition-all"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}
+              style={{ background: "rgba(255,255,255,0.8)", border: "1px solid rgba(29,182,160,0.1)" }}
             >
               <Settings2 size={14} />
               Tipos
@@ -1521,7 +1568,7 @@ export default function AgendaPage() {
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowNewDialog(true)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-white font-medium"
-              style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 16px rgba(1,154,103,0.3)" }}
+              style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)", boxShadow: "0 0 16px rgba(29,182,160,0.3)" }}
             >
               <Plus size={14} />
               Agendar
@@ -1529,37 +1576,39 @@ export default function AgendaPage() {
           </div>
         </div>
 
-        {/* Time grid */}
-        <div className="flex-1 overflow-auto">
-          {view === "day" ? (
-            <DayView
-              appointments={dayAppointments}
-              localStatusMap={localStatusMap}
-              onSelect={setSelectedAppointment}
-              selectedId={selectedAppointment?.id}
-              today={today}
-              selectedDate={selectedDate}
-            />
-          ) : (
-            <WeekView
-              weekDates={weekDates}
-              allAppointments={allAppointments.filter((a) => !activeDoctorFilter || a.doctorId === activeDoctorFilter)}
-              localStatusMap={localStatusMap}
-              onSelect={(appt, dateStr) => {
-                setSelectedAppointment(appt);
-                const d = new Date(dateStr + "T12:00:00");
-                setCurrentYear(d.getFullYear());
-                setCurrentMonth(d.getMonth());
-                setSelectedDay(d.getDate());
-              }}
-              selectedId={selectedAppointment?.id}
-              today={today}
-            />
-          )}
+        <div className="flex-1 overflow-auto p-3">
+          <div
+            className="min-h-full overflow-hidden rounded-[28px] border"
+            style={{ background: "rgba(255,255,255,0.76)", borderColor: "rgba(29,182,160,0.08)" }}
+          >
+            {view === "day" ? (
+              <DayView
+                appointments={dayAppointments}
+                localStatusMap={localStatusMap}
+                onSelect={setSelectedAppointment}
+                selectedId={selectedAppointment?.id}
+                today={today}
+                selectedDate={selectedDate}
+              />
+            ) : (
+              <WeekView
+                weekDates={weekDates}
+                allAppointments={allAppointments.filter((a) => !activeDoctorFilter || a.doctorId === activeDoctorFilter)}
+                onSelect={(appt, dateStr) => {
+                  setSelectedAppointment(appt);
+                  const d = new Date(dateStr + "T12:00:00");
+                  setCurrentYear(d.getFullYear());
+                  setCurrentMonth(d.getMonth());
+                  setSelectedDay(d.getDate());
+                }}
+                selectedId={selectedAppointment?.id}
+                today={today}
+              />
+            )}
+          </div>
         </div>
       </div>
 
-      {/* ── Detail panel ────────────────────────────────────────────────── */}
       <AnimatePresence>
         {selectedAppointment && (
           <motion.div
@@ -1567,14 +1616,23 @@ export default function AgendaPage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 24 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="w-72 border-l border-border flex flex-col overflow-y-auto shrink-0"
-            style={{ background: "var(--surface-1)" }}
+            className="w-[19rem] rounded-[30px] border flex flex-col overflow-y-auto shrink-0"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, var(--surface-1) 100%)",
+              borderColor: "rgba(29,182,160,0.12)",
+              boxShadow: "var(--z-shadow-md)",
+            }}
           >
-            <div className="flex items-center justify-between p-5 border-b border-border">
-              <h3 className="text-sm font-medium text-z-text">Detalhes</h3>
+            <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: "rgba(29,182,160,0.1)" }}>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em]" style={{ color: "#1DB6A0" }}>
+                  Ficha
+                </p>
+                <h3 className="text-sm font-medium text-z-text mt-1">Detalhes</h3>
+              </div>
               <button
                 onClick={() => setSelectedAppointment(null)}
-                className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)] transition-all"
+                className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(29,182,160,0.08)] transition-all"
               >
                 <X size={14} />
               </button>
@@ -1657,7 +1715,7 @@ export default function AgendaPage() {
                         disabled={updatingStatus}
                         onClick={() => handleStatusUpdate(selectedAppointment.id, "confirmed")}
                         className="w-full py-2.5 rounded-xl text-sm text-white font-medium flex items-center justify-center gap-2 disabled:opacity-60"
-                        style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 12px rgba(1,154,103,0.25)" }}
+                        style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)", boxShadow: "0 0 12px rgba(29,182,160,0.25)" }}
                       >
                         <CheckCircle size={14} />
                         Confirmar consulta
@@ -1670,7 +1728,7 @@ export default function AgendaPage() {
                         disabled={updatingStatus}
                         onClick={() => handleStatusUpdate(selectedAppointment.id, "in_progress")}
                         className="w-full py-2.5 rounded-xl text-sm text-white font-medium flex items-center justify-center gap-2 disabled:opacity-60"
-                        style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}
+                        style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}
                       >
                         <CheckCircle size={14} />
                         Iniciar atendimento
@@ -1683,7 +1741,7 @@ export default function AgendaPage() {
                         disabled={updatingStatus}
                         onClick={() => handleStatusUpdate(selectedAppointment.id, "completed")}
                         className="w-full py-2.5 rounded-xl text-sm text-white font-medium flex items-center justify-center gap-2 disabled:opacity-60"
-                        style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}
+                        style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}
                       >
                         <CheckCircle size={14} />
                         Finalizar atendimento
@@ -1693,7 +1751,7 @@ export default function AgendaPage() {
                       disabled={updatingStatus}
                       onClick={() => handleStatusUpdate(selectedAppointment.id, "scheduled")}
                       className="w-full py-2.5 rounded-xl text-sm text-z-dim flex items-center justify-center gap-2 transition-all disabled:opacity-60"
-                      style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}
+                      style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}
                     >
                       <RotateCcw size={13} />
                       Reagendar
@@ -1804,8 +1862,8 @@ function DayView({
             style={{ top: `${(nowHour - 8) * CELL_HEIGHT}px` }}
           >
             <div className="flex items-center gap-0">
-              <div className="w-2 h-2 rounded-full shrink-0 ml-1" style={{ background: "#019A67", boxShadow: "0 0 6px rgba(1,154,103,0.6)" }} />
-              <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, #019A67, transparent)" }} />
+              <div className="w-2 h-2 rounded-full shrink-0 ml-1" style={{ background: "#1DB6A0", boxShadow: "0 0 6px rgba(29,182,160,0.6)" }} />
+              <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, #1DB6A0, transparent)" }} />
             </div>
           </div>
         )}
@@ -1864,14 +1922,12 @@ function DayView({
 function WeekView({
   weekDates,
   allAppointments,
-  localStatusMap,
   onSelect,
   selectedId,
   today,
 }: {
   weekDates: string[];
   allAppointments: Appointment[];
-  localStatusMap: Record<string, string>;
   onSelect: (a: Appointment, date: string) => void;
   selectedId?: string;
   today: Date;
@@ -1908,11 +1964,11 @@ function WeekView({
                 {/* Day header */}
                 <div
                   className="h-10 flex flex-col items-center justify-center border-b border-border shrink-0"
-                  style={{ background: isToday ? "rgba(1,154,103,0.06)" : "transparent" }}
+                  style={{ background: isToday ? "rgba(29,182,160,0.06)" : "transparent" }}
                 >
                   <span className="text-[9px] text-z-faint">{DAYS[d.getDay()]}</span>
                   <span
-                    className={cn("text-xs font-medium", isToday ? "text-[#01c47f]" : "text-z-dim")}
+                    className={cn("text-xs font-medium", isToday ? "text-[#22d3c0]" : "text-z-dim")}
                   >
                     {d.getDate()}
                   </span>
@@ -1930,13 +1986,12 @@ function WeekView({
                       className="absolute left-0 right-0 pointer-events-none z-10"
                       style={{ top: `${(nowHour - 8) * CELL_HEIGHT}px` }}
                     >
-                      <div className="h-px" style={{ background: "#019A67" }} />
+                      <div className="h-px" style={{ background: "#1DB6A0" }} />
                     </div>
                   )}
 
                   {/* Appointments */}
                   {appts.map((appt, i) => {
-                    const effectiveStatus = localStatusMap[appt.id] ?? appt.status;
                     const top    = (appt.hour - 8) * CELL_HEIGHT;
                     const height = appt.duration * CELL_HEIGHT - 2;
                     const color  = appt.doctorColor;

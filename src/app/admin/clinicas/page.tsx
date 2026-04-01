@@ -12,7 +12,7 @@ import {
 } from "@/lib/db/admin";
 
 const statusColors: Record<string, { color: string; label: string }> = {
-  connected:    { color: "#019A67", label: "Conectado" },
+  connected:    { color: "#1DB6A0", label: "Conectado" },
   disconnected: { color: "#6b8f78", label: "Desconectado" },
   connecting:   { color: "#f59e0b", label: "Conectando" },
   error:        { color: "#e05555", label: "Erro" },
@@ -55,11 +55,11 @@ function NewClinicDialog({ onClose, onCreated }: { onClose: () => void; onCreate
         initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 16 }} transition={{ duration: 0.2 }}
         className="relative w-full max-w-md rounded-2xl p-6 z-10 shadow-2xl"
-        style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.2)" }}
+        style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.2)" }}
       >
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-medium text-z-text">Nova clínica</h2>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)]"><X size={15} /></button>
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(29,182,160,0.08)]"><X size={15} /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -69,7 +69,7 @@ function NewClinicDialog({ onClose, onCreated }: { onClose: () => void; onCreate
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value, slug: slugify(e.target.value) }))}
               placeholder="Ex: Clínica São Lucas"
               className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+              style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
             />
           </div>
           <div>
@@ -79,7 +79,7 @@ function NewClinicDialog({ onClose, onCreated }: { onClose: () => void; onCreate
               onChange={(e) => setForm((f) => ({ ...f, slug: slugify(e.target.value) }))}
               placeholder={form.name ? slugify(form.name) : "clinica-sao-lucas"}
               className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint font-mono outline-none"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+              style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
             />
             <p className="text-[10px] text-z-faint mt-1">Preenchido automaticamente a partir do nome. Deve ser único.</p>
           </div>
@@ -87,7 +87,7 @@ function NewClinicDialog({ onClose, onCreated }: { onClose: () => void; onCreate
             <label className="text-xs text-z-dim block mb-1.5">Fuso horário</label>
             <select value={form.timezone} onChange={(e) => setForm((f) => ({ ...f, timezone: e.target.value }))}
               className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}>
+              style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}>
               {TIMEZONES.map((tz) => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
             </select>
           </div>
@@ -97,10 +97,10 @@ function NewClinicDialog({ onClose, onCreated }: { onClose: () => void; onCreate
             </div>
           )}
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm text-z-dim" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>Cancelar</button>
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm text-z-dim" style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}>Cancelar</button>
             <motion.button type="submit" disabled={saving} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               className="flex-1 py-2.5 rounded-xl text-sm text-white font-medium disabled:opacity-60"
-              style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+              style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}>
               {saving ? "Criando..." : "Criar clínica"}
             </motion.button>
           </div>
@@ -128,34 +128,34 @@ function EditClinicDialog({ clinic, onClose, onSaved }: { clinic: ClinicWithStat
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <motion.div initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 16 }} transition={{ duration: 0.2 }}
-        className="relative w-full max-w-sm rounded-2xl p-6 z-10" style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.2)" }}>
+        className="relative w-full max-w-sm rounded-2xl p-6 z-10" style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.2)" }}>
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-medium text-z-text">Editar clínica</h2>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)]"><X size={15} /></button>
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(29,182,160,0.08)]"><X size={15} /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-xs text-z-dim block mb-1.5">Nome</label>
             <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+              className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none" style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }} />
           </div>
           <div>
             <label className="text-xs text-z-dim block mb-1.5">Endereço</label>
             <input type="text" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
               placeholder="Rua, número, bairro, cidade — UF"
-              className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+              className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none" style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }} />
           </div>
           <div>
             <label className="text-xs text-z-dim block mb-1.5">Fuso horário</label>
             <select value={form.timezone} onChange={(e) => setForm((f) => ({ ...f, timezone: e.target.value }))}
-              className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}>
+              className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none" style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}>
               {TIMEZONES.map((tz) => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
             </select>
           </div>
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm text-z-dim" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>Cancelar</button>
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm text-z-dim" style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}>Cancelar</button>
             <motion.button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl text-sm text-white font-medium disabled:opacity-60"
-              style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+              style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}>
               {saving ? "Salvando..." : "Salvar"}
             </motion.button>
           </div>
@@ -213,21 +213,21 @@ export default function ClinicasPage() {
           <p className="text-sm text-z-dim mt-0.5">{loading ? "..." : `${clinics.length} clínica${clinics.length !== 1 ? "s" : ""} cadastrada${clinics.length !== 1 ? "s" : ""}`}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}>
             <Search size={13} className="text-z-dim" />
             <input type="text" placeholder="Buscar clínica..." value={search} onChange={(e) => setSearch(e.target.value)}
               className="bg-transparent text-sm text-z-text placeholder:text-z-faint outline-none w-40" />
           </div>
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowNew(true)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-white font-medium"
-            style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 16px rgba(1,154,103,0.3)" }}>
+            style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)", boxShadow: "0 0 16px rgba(29,182,160,0.3)" }}>
             <Plus size={14} /> Nova clínica
           </motion.button>
         </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.1)" }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.1)" }}>
         <div className="grid grid-cols-12 gap-4 px-5 py-3 text-xs text-z-dim font-medium border-b border-border" style={{ background: "var(--surface-2)" }}>
           <div className="col-span-4 flex items-center gap-2"><Building2 size={12} /> Clínica</div>
           <div className="col-span-2">Membros / Médicos</div>
@@ -240,27 +240,27 @@ export default function ClinicasPage() {
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="grid grid-cols-12 gap-4 px-5 py-4 border-b border-border">
               <div className="col-span-4 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl animate-pulse" style={{ background: "rgba(1,154,103,0.08)" }} />
-                <div className="h-3 w-36 rounded animate-pulse" style={{ background: "rgba(1,154,103,0.06)" }} />
+                <div className="w-9 h-9 rounded-xl animate-pulse" style={{ background: "rgba(29,182,160,0.08)" }} />
+                <div className="h-3 w-36 rounded animate-pulse" style={{ background: "rgba(29,182,160,0.06)" }} />
               </div>
-              <div className="col-span-8 flex items-center"><div className="h-3 w-full rounded animate-pulse" style={{ background: "rgba(1,154,103,0.04)" }} /></div>
+              <div className="col-span-8 flex items-center"><div className="h-3 w-full rounded animate-pulse" style={{ background: "rgba(29,182,160,0.04)" }} /></div>
             </div>
           ))
         ) : filtered.length === 0 ? (
           <div className="px-5 py-12 text-center">
             <p className="text-sm text-z-dim">{search ? "Nenhuma clínica encontrada" : "Nenhuma clínica cadastrada"}</p>
-            {!search && <button onClick={() => setShowNew(true)} className="mt-3 text-xs text-[#019A67] hover:text-[#01c47f]">+ Criar clínica</button>}
+            {!search && <button onClick={() => setShowNew(true)} className="mt-3 text-xs text-[#1DB6A0] hover:text-[#22d3c0]">+ Criar clínica</button>}
           </div>
         ) : (
           filtered.map((clinic, i) => {
             const wa = statusColors[clinic.uazapi_status ?? "disconnected"] ?? statusColors.disconnected;
             return (
               <motion.div key={clinic.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}
-                className="grid grid-cols-12 gap-4 px-5 py-3.5 border-b border-border hover:bg-[rgba(1,154,103,0.03)] transition-colors relative">
+                className="grid grid-cols-12 gap-4 px-5 py-3.5 border-b border-border hover:bg-[rgba(29,182,160,0.03)] transition-colors relative">
                 {/* Clinic */}
                 <div className="col-span-4 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-medium text-white shrink-0"
-                    style={{ background: clinic.active ? "linear-gradient(135deg, rgba(1,154,103,0.5), rgba(1,154,103,0.8))" : "rgba(107,143,120,0.4)" }}>
+                    style={{ background: clinic.active ? "linear-gradient(135deg, rgba(29,182,160,0.5), rgba(29,182,160,0.8))" : "rgba(107,143,120,0.4)" }}>
                     {clinic.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0">
@@ -294,33 +294,33 @@ export default function ClinicasPage() {
                 <div className="col-span-1 flex items-center justify-end">
                   <div className="relative">
                     <button onClick={() => setOpenMenu(openMenu === clinic.id ? null : clinic.id)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-z-text hover:bg-[rgba(1,154,103,0.08)] transition-all">
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-z-text hover:bg-[rgba(29,182,160,0.08)] transition-all">
                       <MoreHorizontal size={14} />
                     </button>
                     <AnimatePresence>
                       {openMenu === clinic.id && (
                         <motion.div initial={{ opacity: 0, y: 4, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4, scale: 0.96 }}
                           transition={{ duration: 0.12 }} className="absolute right-0 top-full mt-1 rounded-xl shadow-2xl z-20 py-1 min-w-36"
-                          style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.15)" }}>
+                          style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.15)" }}>
                           <button onClick={() => handleAccessClinic(clinic)}
                             disabled={!!accessingId}
                             className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-all disabled:opacity-50"
-                            style={{ color: "#019A67" }}>
+                            style={{ color: "#1DB6A0" }}>
                             {accessingId === clinic.id ? <Loader2 size={11} className="animate-spin" /> : <LogIn size={11} />}
                             Acessar como clínica
                           </button>
                           <div className="my-1 border-t" style={{ borderColor: "var(--border)" }} />
                           <button onClick={() => router.push(`/admin/clinicas/${clinic.id}`)}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-z-dim hover:bg-[rgba(1,154,103,0.06)] transition-all">
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-z-dim hover:bg-[rgba(29,182,160,0.06)] transition-all">
                             <Settings size={11} /> Gerenciar
                           </button>
                           <button onClick={() => { setEditClinic(clinic); setOpenMenu(null); }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-z-dim hover:bg-[rgba(1,154,103,0.06)] transition-all">
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-z-dim hover:bg-[rgba(29,182,160,0.06)] transition-all">
                             <Edit2 size={11} /> Editar
                           </button>
                           <button onClick={() => handleToggleActive(clinic)}
                             className="w-full flex items-center gap-2 px-3 py-2 text-xs transition-all"
-                            style={{ color: clinic.active ? "#e05555" : "#019A67" }}>
+                            style={{ color: clinic.active ? "#e05555" : "#1DB6A0" }}>
                             {clinic.active ? <><PowerOff size={11} /> Suspender</> : <><Power size={11} /> Reativar</>}
                           </button>
                         </motion.div>

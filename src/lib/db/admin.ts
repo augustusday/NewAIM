@@ -152,9 +152,16 @@ export async function toggleSuperAdmin(userId: string, value: boolean): Promise<
 }
 
 export async function addUserToClinic(userId: string, clinicId: string, role: string): Promise<void> {
-  await supabase
-    .from("clinic_members")
-    .upsert({ user_id: userId, clinic_id: clinicId, role, active: true });
+  await Promise.all([
+    supabase
+      .from("clinic_members")
+      .upsert({ user_id: userId, clinic_id: clinicId, role, active: true }, { onConflict: "user_id,clinic_id" }),
+    supabase
+      .from("profiles")
+      .update({ active_clinic_id: clinicId })
+      .eq("id", userId)
+      .is("active_clinic_id", null),
+  ]);
 }
 
 // ── Platform-level UAZAPI instance management ─────────────────────────────────
@@ -238,7 +245,7 @@ export async function createDoctor(clinicId: string, data: {
 }): Promise<Doctor | null> {
   const { data: doctor } = await supabase
     .from("doctors")
-    .insert({ clinic_id: clinicId, active: true, color: "#019A67", ...data })
+    .insert({ clinic_id: clinicId, active: true, color: "#1DB6A0", ...data })
     .select()
     .single();
   return doctor;
@@ -305,7 +312,7 @@ export async function createAppointmentType(clinicId: string, data: {
 }): Promise<AppointmentType | null> {
   const { data: at } = await supabase
     .from("appointment_types")
-    .insert({ clinic_id: clinicId, active: true, color: "#019A67", duration_minutes: 30, ...data })
+    .insert({ clinic_id: clinicId, active: true, color: "#1DB6A0", duration_minutes: 30, ...data })
     .select()
     .single();
   return at;

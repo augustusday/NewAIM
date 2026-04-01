@@ -1,9 +1,18 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, AlertCircle, ArrowRight, Loader2 } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Loader2,
+  CalendarCheck2,
+  MessageSquareText,
+  UsersRound,
+  CheckCircle2,
+} from "lucide-react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -15,27 +24,35 @@ export default function LoginPage() {
   );
 }
 
+const FEATURES = [
+  { icon: CalendarCheck2,    text: "Agenda integrada com IA" },
+  { icon: MessageSquareText, text: "WhatsApp conectado" },
+  { icon: UsersRound,        text: "CRM de pacientes" },
+];
+
+const SPRING = { type: "spring" as const, stiffness: 360, damping: 40 };
+
 function LoginForm() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const redirect     = searchParams.get("redirect") ?? "/dashboard";
 
-  const [email, setEmail]         = useState("");
-  const [password, setPassword]   = useState("");
-  const [showPass, setShowPass]   = useState(false);
-  const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState("");
-  const [success, setSuccess]     = useState("");
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) router.replace(redirect);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(""); setSuccess("");
+    setError("");
     if (!email || !password) { setError("Preencha todos os campos."); return; }
     setLoading(true);
 
@@ -47,19 +64,14 @@ function LoginForm() {
       }
 
       const user = authData.user;
-      if (!user) {
-        setError("Erro ao obter dados do usuário. Tente novamente.");
-        return;
-      }
+      if (!user) { setError("Erro ao obter dados do usuário."); return; }
 
-      // Fetch profile and ensure clinic link
       const { data: profile } = await supabase
         .from("profiles")
         .select("is_super_admin, active_clinic_id")
         .eq("id", user.id)
         .single();
 
-      // If user has no clinic linked, find their first membership
       if (!profile?.active_clinic_id) {
         const { data: membership } = await supabase
           .from("clinic_members")
@@ -88,166 +100,346 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-mesh">
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(circle at top, rgba(1,154,103,0.12), transparent 34%), linear-gradient(180deg, rgba(255,255,255,0.38), transparent 28%)",
-        }}
-      />
-      <div
-        className="pointer-events-none absolute left-1/2 top-28 h-64 w-64 -translate-x-1/2 rounded-full"
-        style={{
-          background: "radial-gradient(circle, rgba(1,154,103,0.12) 0%, transparent 68%)",
-          filter: "blur(30px)",
-        }}
-      />
+    <div className="min-h-screen flex">
 
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center px-6 pb-10 pt-8 sm:px-8">
+      {/* ── LEFT PANEL — Brand ── */}
+      <div
+        className="hidden lg:flex lg:w-[44%] xl:w-[42%] flex-col justify-between relative overflow-hidden"
+        style={{
+          background: "linear-gradient(160deg, #0d2420 0%, #0f2e28 40%, #134039 100%)",
+        }}
+      >
+        {/* Grid pattern overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(29,182,160,0.06) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(29,182,160,0.06) 1px, transparent 1px)
+            `,
+            backgroundSize: "48px 48px",
+          }}
+        />
+
+        {/* Glow blob */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            width: 360,
+            height: 360,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(29,182,160,0.18) 0%, transparent 70%)",
+            top: "30%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            filter: "blur(40px)",
+          }}
+        />
+
+        <div className="relative z-10 flex flex-col h-full p-10 xl:p-14">
+          {/* Logo */}
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...SPRING, delay: 0.1 }}
+            className="flex items-center"
+          >
+            <Image src="/brand-mark.png" alt="AgendaIAMed" width={36} height={54} className="object-contain" />
+          </motion.div>
+
+          {/* Center content */}
+          <div className="flex-1 flex flex-col justify-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...SPRING, delay: 0.2 }}
+            >
+              <p
+                className="text-[11px] font-semibold uppercase tracking-[0.18em] mb-4"
+                style={{ color: "#1DB6A0" }}
+              >
+                Plataforma para clínicas
+              </p>
+              <h2
+                className="text-[2.6rem] xl:text-[3rem] leading-[1.1] font-bold mb-6"
+                style={{
+                  color: "#fff",
+                  fontFamily: "var(--font-display)",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                Sua clínica,{" "}
+                <span
+                  style={{
+                    color: "transparent",
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    backgroundImage: "linear-gradient(90deg, #1DB6A0, #4de8d0)",
+                  }}
+                >
+                  mais inteligente.
+                </span>
+              </h2>
+              <p
+                className="text-[14px] leading-relaxed"
+                style={{ color: "rgba(255,255,255,0.55)", maxWidth: 320 }}
+              >
+                Agenda, CRM de pacientes e WhatsApp com inteligência artificial em uma só plataforma.
+              </p>
+            </motion.div>
+
+            {/* Feature list */}
+            <div className="mt-10 space-y-3">
+              {FEATURES.map(({ icon: Icon, text }, i) => (
+                <motion.div
+                  key={text}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ ...SPRING, delay: 0.35 + i * 0.07 }}
+                  className="flex items-center gap-3"
+                >
+                  <div
+                    className="flex items-center justify-center rounded-lg shrink-0"
+                    style={{
+                      width: 30,
+                      height: 30,
+                      background: "rgba(29,182,160,0.12)",
+                      border: "1px solid rgba(29,182,160,0.2)",
+                    }}
+                  >
+                    <Icon size={14} strokeWidth={2} style={{ color: "#1DB6A0" }} />
+                  </div>
+                  <span className="text-[13px]" style={{ color: "rgba(255,255,255,0.7)" }}>
+                    {text}
+                  </span>
+                  <CheckCircle2 size={12} style={{ color: "rgba(29,182,160,0.6)", marginLeft: "auto" }} />
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="text-[11px]"
+            style={{ color: "rgba(255,255,255,0.25)" }}
+          >
+            © {new Date().getFullYear()} AgendaIAMed. Todos os direitos reservados.
+          </motion.p>
+        </div>
+      </div>
+
+      {/* ── RIGHT PANEL — Form ── */}
+      <div
+        className="flex-1 flex flex-col items-center justify-center px-6 py-12 lg:px-16"
+        style={{ background: "var(--background)" }}
+      >
+        {/* Mobile logo */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          className="mb-10 flex w-full justify-center"
+          transition={SPRING}
+          className="flex lg:hidden items-center mb-10"
         >
-          <div className="flex flex-col items-center gap-1.5 text-center">
-            <div className="space-y-1.5">
-              <Image src="/logo-zelus.png" alt="Zelus" width={120} height={36} className="mx-auto object-contain" />
-              <p className="text-[11px] uppercase tracking-[0.24em] text-z-faint">Plataforma clínica integrada</p>
-            </div>
-          </div>
+          <Image src="/brand-mark.png" alt="AgendaIAMed" width={30} height={46} className="object-contain" />
         </motion.div>
 
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-[380px]">
+          {/* Heading */}
           <motion.div
-            initial={{ opacity: 0, y: 18 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="w-full rounded-[2rem] p-5 sm:p-6"
-            style={{
-              background: "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.78))",
-              border: "1px solid rgba(1,154,103,0.14)",
-              boxShadow: "var(--z-shadow-md)",
-              backdropFilter: "blur(18px)",
-            }}
+            transition={{ ...SPRING, delay: 0.08 }}
+            className="mb-8"
           >
-            <div className="mb-7 space-y-2 text-center sm:text-left">
-              <h2 className="text-[1.7rem] text-z-text" style={{ fontWeight: 500, letterSpacing: "-0.03em" }}>
-                Acesse sua conta
-              </h2>
-              <p className="text-sm leading-6 text-z-dim">
-                Entre para continuar sua operação com agenda, CRM e atendimento.
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-xs text-z-dim">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  autoComplete="email"
-                  className="w-full rounded-2xl px-4 py-3 text-sm text-z-text outline-none transition-all placeholder:text-z-faint"
-                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.13)" }}
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs text-z-dim">Senha</label>
-                <div className="relative">
-                  <input
-                    type={showPass ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    className="w-full rounded-2xl px-4 py-3 pr-11 text-sm text-z-text outline-none transition-all placeholder:text-z-faint"
-                    style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.13)" }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass((p) => !p)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-z-faint transition-colors hover:text-z-dim"
-                  >
-                    {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              <AnimatePresence>
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    className="flex items-center gap-2 rounded-2xl px-3 py-2.5 text-xs text-[#e05555]"
-                    style={{ background: "rgba(224,85,85,0.08)", border: "1px solid rgba(224,85,85,0.15)" }}
-                  >
-                    <AlertCircle size={13} className="shrink-0" />
-                    {error}
-                  </motion.div>
-                )}
-                {success && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    className="flex items-center gap-2 rounded-2xl px-3 py-2.5 text-xs text-[#019A67]"
-                    style={{ background: "rgba(1,154,103,0.08)", border: "1px solid rgba(1,154,103,0.2)" }}
-                  >
-                    {success}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <motion.button
-                type="submit"
-                disabled={loading}
-                whileHover={{ scale: loading ? 1 : 1.01 }}
-                whileTap={{ scale: loading ? 1 : 0.99 }}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-medium text-white transition-all disabled:opacity-70"
-                style={{
-                  background: "linear-gradient(135deg, #019A67, #01a870)",
-                  boxShadow: "0 16px 28px rgba(1,154,103,0.24)",
-                }}
-              >
-                {loading ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <>
-                    Entrar na plataforma
-                    <ArrowRight size={15} />
-                  </>
-                )}
-              </motion.button>
-            </form>
-
-            <p className="mt-6 text-center text-xs text-z-faint">
-              O cadastro de usuários é realizado pelo administrador.{" "}
-              <a href="mailto:suporte@zelus.app" className="text-[#019A67] transition-colors hover:text-[#01c47f]">
-                Contate o suporte
-              </a>
+            <h1
+              className="text-[2rem] font-bold leading-tight tracking-tight mb-2"
+              style={{
+                color: "var(--z-text)",
+                fontFamily: "var(--font-display)",
+                letterSpacing: "-0.025em",
+              }}
+            >
+              Bem-vindo de volta
+            </h1>
+            <p className="text-[14px]" style={{ color: "var(--z-text-dim)" }}>
+              Entre com suas credenciais para continuar.
             </p>
           </motion.div>
-        </div>
 
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-center">
-          {[
-            "Agenda integrada",
-            "CRM da clínica",
-            "WhatsApp conectado",
-          ].map((item) => (
-            <div
-              key={item}
-              className="rounded-full px-3 py-1.5 text-[11px] text-z-dim"
-              style={{ background: "rgba(255,255,255,0.62)", border: "1px solid rgba(1,154,103,0.09)" }}
-            >
-              {item}
+          {/* Form */}
+          <motion.form
+            onSubmit={handleSubmit}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...SPRING, delay: 0.14 }}
+            className="space-y-4"
+          >
+            {/* Email */}
+            <div>
+              <label
+                className="block text-[12px] font-semibold mb-1.5"
+                style={{ color: "var(--z-text-dim)", letterSpacing: "0.01em" }}
+              >
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                autoComplete="email"
+                className="w-full text-[14px] outline-none rounded-lg"
+                style={{
+                  padding: "11px 14px",
+                  background: "var(--surface-1)",
+                  border: "1.5px solid var(--border)",
+                  color: "var(--z-text)",
+                  transition: "border-color 180ms ease",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(29,182,160,0.6)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "var(--border)";
+                }}
+              />
             </div>
-          ))}
+
+            {/* Password */}
+            <div>
+              <label
+                className="block text-[12px] font-semibold mb-1.5"
+                style={{ color: "var(--z-text-dim)", letterSpacing: "0.01em" }}
+              >
+                Senha
+              </label>
+              <div className="relative">
+                <input
+                  type={showPass ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className="w-full text-[14px] outline-none rounded-lg pr-11"
+                  style={{
+                    padding: "11px 14px",
+                    background: "var(--surface-1)",
+                    border: "1.5px solid var(--border)",
+                    color: "var(--z-text)",
+                    transition: "border-color 180ms ease",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(29,182,160,0.6)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = "var(--border)";
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass((p) => !p)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: "var(--z-text-faint)" }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.color = "var(--z-text-dim)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.color = "var(--z-text-faint)";
+                  }}
+                >
+                  {showPass ? <EyeOff size={15} strokeWidth={1.75} /> : <Eye size={15} strokeWidth={1.75} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Error message */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.97, y: -4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.97, y: -4 }}
+                  transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+                  className="flex items-center gap-2.5 rounded-lg text-[13px]"
+                  style={{
+                    padding: "10px 14px",
+                    background: "rgba(244,67,54,0.06)",
+                    border: "1px solid rgba(244,67,54,0.18)",
+                    color: "#F44336",
+                  }}
+                >
+                  <div
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: "#F44336" }}
+                  />
+                  {error}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Submit */}
+            <motion.button
+              type="submit"
+              disabled={loading}
+              whileTap={{ scale: loading ? 1 : 0.97 }}
+              className="w-full flex items-center justify-center gap-2 rounded-lg text-[14px] font-semibold text-white mt-2"
+              style={{
+                padding: "13px",
+                background: loading
+                  ? "rgba(29,182,160,0.6)"
+                  : "linear-gradient(135deg, #1DB6A0 0%, #19a896 100%)",
+                boxShadow: loading ? "none" : "0 8px 24px rgba(29,182,160,0.28)",
+                transition: "box-shadow 200ms ease, background 200ms ease",
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
+              onMouseEnter={(e) => {
+                if (!loading)
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                    "0 12px 28px rgba(29,182,160,0.38)";
+              }}
+              onMouseLeave={(e) => {
+                if (!loading)
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                    "0 8px 24px rgba(29,182,160,0.28)";
+              }}
+            >
+              {loading ? (
+                <Loader2 size={16} strokeWidth={2} className="animate-spin" />
+              ) : (
+                <>
+                  Entrar na plataforma
+                  <ArrowRight size={15} strokeWidth={2} />
+                </>
+              )}
+            </motion.button>
+          </motion.form>
+
+          {/* Footer */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="mt-8 text-[12px] text-center"
+            style={{ color: "var(--z-text-faint)" }}
+          >
+            Cadastros são realizados pelo administrador.{" "}
+            <a
+              href="mailto:suporte@agendaiamed.com.br"
+              className="transition-colors"
+              style={{ color: "#1DB6A0" }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.color = "#22d3c0";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.color = "#1DB6A0";
+              }}
+            >
+              Contatar suporte
+            </a>
+          </motion.p>
         </div>
       </div>
     </div>

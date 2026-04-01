@@ -59,25 +59,25 @@ interface Contact {
 }
 
 const statusTagMap: Record<string, { label: string; color: string }> = {
-  lead:     { label: "Lead",     color: "#019A67" },
-  patient:  { label: "Paciente", color: "#01c47f" },
+  lead:     { label: "Lead",     color: "#1DB6A0" },
+  patient:  { label: "Paciente", color: "#22d3c0" },
   return:   { label: "Retorno",  color: "#f59e0b" },
   inactive: { label: "Inativo",  color: "#6b8f78" },
 };
 
 const statusOptions = [
-  { value: "lead",     label: "Lead",     color: "#019A67" },
-  { value: "patient",  label: "Paciente", color: "#01c47f" },
+  { value: "lead",     label: "Lead",     color: "#1DB6A0" },
+  { value: "patient",  label: "Paciente", color: "#22d3c0" },
   { value: "return",   label: "Retorno",  color: "#f59e0b" },
   { value: "inactive", label: "Inativo",  color: "#6b8f78" },
 ];
 
 const appointmentStatusColors: Record<string, string> = {
-  confirmed: "#019A67",
+  confirmed: "#1DB6A0",
   scheduled: "#f59e0b",
   cancelled: "#e05555",
   completed: "#6b8f78",
-  in_progress: "#01c47f",
+  in_progress: "#22d3c0",
   no_show: "#e05555",
 };
 
@@ -112,7 +112,7 @@ function initials(name: string): string {
 }
 
 function mapContact(c: DBContact): Contact {
-  const tm = statusTagMap[c.status] ?? { label: c.status, color: "#019A67" };
+  const tm = statusTagMap[c.status] ?? { label: c.status, color: "#1DB6A0" };
   return {
     id: c.id,
     name: c.full_name,
@@ -167,11 +167,11 @@ function NewContactDialog({
         exit={{ opacity: 0, scale: 0.95, y: 16 }}
         transition={{ duration: 0.2 }}
         className="relative w-full max-w-md rounded-2xl p-6 shadow-2xl z-10"
-        style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.2)" }}
+        style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.2)" }}
       >
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-medium text-z-text">Novo contato</h2>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)] transition-all">
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(29,182,160,0.08)] transition-all">
             <X size={15} />
           </button>
         </div>
@@ -185,7 +185,7 @@ function NewContactDialog({
               onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
               placeholder="Ex: Ana Paula Ferreira"
               className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none transition-all"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+              style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -197,7 +197,7 @@ function NewContactDialog({
                 onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
                 placeholder="+55 11 99999-9999"
                 className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none transition-all"
-                style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+                style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
               />
             </div>
             <div>
@@ -206,7 +206,7 @@ function NewContactDialog({
                 value={form.status}
                 onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
                 className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text outline-none transition-all"
-                style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+                style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
               >
                 {statusOptions.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
@@ -222,7 +222,7 @@ function NewContactDialog({
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
               placeholder="email@exemplo.com"
               className="w-full px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none transition-all"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+              style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
             />
           </div>
 
@@ -237,7 +237,7 @@ function NewContactDialog({
               type="button"
               onClick={onClose}
               className="flex-1 py-2.5 rounded-xl text-sm text-z-dim transition-all"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}
+              style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}
             >
               Cancelar
             </button>
@@ -247,7 +247,7 @@ function NewContactDialog({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="flex-1 py-2.5 rounded-xl text-sm text-white font-medium disabled:opacity-60"
-              style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}
+              style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}
             >
               {saving ? "Salvando..." : "Criar contato"}
             </motion.button>
@@ -299,32 +299,63 @@ function ContactPanel({
   const noteRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    setCurrentStatus(contact.status);
-    setDraft({
-      full_name: contact.raw.full_name ?? "",
-      phone: contact.raw.phone ?? "",
-      email: contact.raw.email ?? "",
-      birth_date: contact.raw.birth_date ?? "",
-      gender: contact.raw.gender ?? "",
-      document: contact.raw.document ?? "",
-      insurance_type: contact.raw.insurance_type ?? "particular",
-      insurance_name: contact.raw.insurance_name ?? "",
-      insurance_value: contact.raw.insurance_value ?? "",
-      notes: contact.raw.notes ?? "",
-    });
-    setEditing(false);
-  }, [contact.id]);
+    const timer = setTimeout(() => {
+      setCurrentStatus(contact.status);
+      setDraft({
+        full_name: contact.raw.full_name ?? "",
+        phone: contact.raw.phone ?? "",
+        email: contact.raw.email ?? "",
+        birth_date: contact.raw.birth_date ?? "",
+        gender: contact.raw.gender ?? "",
+        document: contact.raw.document ?? "",
+        insurance_type: contact.raw.insurance_type ?? "particular",
+        insurance_name: contact.raw.insurance_name ?? "",
+        insurance_value: contact.raw.insurance_value ?? "",
+        notes: contact.raw.notes ?? "",
+      });
+      setEditing(false);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [
+    contact.id,
+    contact.status,
+    contact.raw.birth_date,
+    contact.raw.document,
+    contact.raw.email,
+    contact.raw.full_name,
+    contact.raw.gender,
+    contact.raw.insurance_name,
+    contact.raw.insurance_type,
+    contact.raw.insurance_value,
+    contact.raw.notes,
+    contact.raw.phone,
+  ]);
 
   useEffect(() => {
-    if (tab === "notes" && notes.length === 0) {
-      setLoadingNotes(true);
-      getContactNotes(contact.id).then((data) => { setNotes(data); setLoadingNotes(false); });
-    }
-    if (tab === "appointments" && appointments.length === 0) {
-      setLoadingAppts(true);
-      getContactAppointments(clinicId, contact.id).then((data) => { setAppointments(data); setLoadingAppts(false); });
-    }
-  }, [tab, contact.id]);
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (tab === "notes" && notes.length === 0) {
+        setLoadingNotes(true);
+        getContactNotes(contact.id).then((data) => {
+          if (cancelled) return;
+          setNotes(data);
+          setLoadingNotes(false);
+        });
+      }
+      if (tab === "appointments" && appointments.length === 0) {
+        setLoadingAppts(true);
+        getContactAppointments(clinicId, contact.id).then((data) => {
+          if (cancelled) return;
+          setAppointments(data);
+          setLoadingAppts(false);
+        });
+      }
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [appointments.length, clinicId, contact.id, notes.length, tab]);
 
   const handleAddNote = async () => {
     if (!noteText.trim()) return;
@@ -362,8 +393,8 @@ function ContactPanel({
   };
 
   const d = (k: keyof typeof draft) => (v: string) => setDraft((p) => ({ ...p, [k]: v }));
-  const inputCls = "w-full px-2.5 py-1.5 rounded-lg text-xs text-z-text placeholder:text-z-faint outline-none focus:ring-1 focus:ring-[#019A67]";
-  const inputStyle = { background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" };
+  const inputCls = "w-full px-2.5 py-1.5 rounded-lg text-xs text-z-text placeholder:text-z-faint outline-none focus:ring-1 focus:ring-[#1DB6A0]";
+  const inputStyle = { background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" };
   const labelCls = "block text-[10px] text-z-faint mb-1";
 
   return (
@@ -381,7 +412,7 @@ function ContactPanel({
           <div className="flex items-center gap-3">
             <div
               className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-medium text-white shrink-0"
-              style={{ background: "linear-gradient(135deg, rgba(1,154,103,0.5), rgba(1,154,103,0.9))" }}
+              style={{ background: "linear-gradient(135deg, rgba(29,182,160,0.5), rgba(29,182,160,0.9))" }}
             >
               {initials(contact.name)}
             </div>
@@ -393,12 +424,12 @@ function ContactPanel({
           <div className="flex items-center gap-1">
             <button
               onClick={() => { if (editing) { setEditing(false); } else { setEditing(true); setTab("info"); } }}
-              className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)] transition-all"
+              className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(29,182,160,0.08)] transition-all"
               title={editing ? "Cancelar edição" : "Editar contato"}
             >
               {editing ? <X size={13} /> : <Edit2 size={13} />}
             </button>
-            <button onClick={onClose} className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)] transition-all">
+            <button onClick={onClose} className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(29,182,160,0.08)] transition-all">
               <X size={14} />
             </button>
           </div>
@@ -439,7 +470,7 @@ function ContactPanel({
               key={id}
               onClick={() => setTab(id)}
               className={cn("flex-1 flex items-center justify-center gap-1.5 py-3 text-xs transition-all",
-                tab === id ? "text-[#01c47f] border-b-2 border-[#019A67]" : "text-z-dim")}
+                tab === id ? "text-[#22d3c0] border-b-2 border-[#1DB6A0]" : "text-z-dim")}
             >
               <Icon size={12} />
               {label}
@@ -499,9 +530,9 @@ function ContactPanel({
                       onClick={() => d("insurance_type")(t)}
                       className="flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all"
                       style={{
-                        background: draft.insurance_type === t ? "rgba(1,154,103,0.15)" : "var(--input)",
-                        color: draft.insurance_type === t ? "#019A67" : "var(--z-text-dim)",
-                        border: draft.insurance_type === t ? "1px solid rgba(1,154,103,0.3)" : "1px solid transparent",
+                        background: draft.insurance_type === t ? "rgba(29,182,160,0.15)" : "var(--input)",
+                        color: draft.insurance_type === t ? "#1DB6A0" : "var(--z-text-dim)",
+                        border: draft.insurance_type === t ? "1px solid rgba(29,182,160,0.3)" : "1px solid transparent",
                       }}>
                       {t === "particular" ? "Particular" : "Convênio"}
                     </button>
@@ -527,12 +558,12 @@ function ContactPanel({
               <div className="flex gap-2 pt-1">
                 <button onClick={() => setEditing(false)}
                   className="flex-1 py-2 rounded-xl text-xs text-z-dim transition-all"
-                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+                  style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}>
                   Cancelar
                 </button>
                 <button onClick={handleSave} disabled={saving}
                   className="flex-1 py-2 rounded-xl text-xs text-white font-medium flex items-center justify-center gap-1.5 disabled:opacity-60"
-                  style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+                  style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}>
                   {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
                   Salvar
                 </button>
@@ -552,8 +583,8 @@ function ContactPanel({
               <div className="space-y-3">
                 {contact.phone && (
                   <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(1,154,103,0.1)" }}>
-                      <Phone size={12} style={{ color: "#019A67" }} />
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(29,182,160,0.1)" }}>
+                      <Phone size={12} style={{ color: "#1DB6A0" }} />
                     </div>
                     <div>
                       <p className="text-[10px] text-z-faint">Telefone</p>
@@ -563,8 +594,8 @@ function ContactPanel({
                 )}
                 {contact.email && (
                   <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(1,154,103,0.1)" }}>
-                      <Mail size={12} style={{ color: "#019A67" }} />
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(29,182,160,0.1)" }}>
+                      <Mail size={12} style={{ color: "#1DB6A0" }} />
                     </div>
                     <div>
                       <p className="text-[10px] text-z-faint">Email</p>
@@ -574,8 +605,8 @@ function ContactPanel({
                 )}
                 {contact.raw.birth_date && (
                   <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(1,154,103,0.1)" }}>
-                      <Cake size={12} style={{ color: "#019A67" }} />
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(29,182,160,0.1)" }}>
+                      <Cake size={12} style={{ color: "#1DB6A0" }} />
                     </div>
                     <div>
                       <p className="text-[10px] text-z-faint">Nascimento</p>
@@ -585,8 +616,8 @@ function ContactPanel({
                 )}
                 {contact.raw.document && (
                   <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(1,154,103,0.1)" }}>
-                      <IdCard size={12} style={{ color: "#019A67" }} />
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(29,182,160,0.1)" }}>
+                      <IdCard size={12} style={{ color: "#1DB6A0" }} />
                     </div>
                     <div>
                       <p className="text-[10px] text-z-faint">CPF / Documento</p>
@@ -596,8 +627,8 @@ function ContactPanel({
                 )}
                 {(contact.raw.insurance_type || contact.raw.insurance_name) && (
                   <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(1,154,103,0.1)" }}>
-                      <ShieldCheck size={12} style={{ color: "#019A67" }} />
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(29,182,160,0.1)" }}>
+                      <ShieldCheck size={12} style={{ color: "#1DB6A0" }} />
                     </div>
                     <div>
                       <p className="text-[10px] text-z-faint">Atendimento</p>
@@ -611,8 +642,8 @@ function ContactPanel({
                 )}
                 {contact.raw.insurance_value && (
                   <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(1,154,103,0.1)" }}>
-                      <Banknote size={12} style={{ color: "#019A67" }} />
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(29,182,160,0.1)" }}>
+                      <Banknote size={12} style={{ color: "#1DB6A0" }} />
                     </div>
                     <div>
                       <p className="text-[10px] text-z-faint">Valor</p>
@@ -621,8 +652,8 @@ function ContactPanel({
                   </div>
                 )}
                 <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(1,154,103,0.1)" }}>
-                    <Clock size={12} style={{ color: "#019A67" }} />
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(29,182,160,0.1)" }}>
+                    <Clock size={12} style={{ color: "#1DB6A0" }} />
                   </div>
                   <div>
                     <p className="text-[10px] text-z-faint">Último contato</p>
@@ -634,7 +665,7 @@ function ContactPanel({
                     <p className="text-[10px] text-z-faint mb-2">Tags</p>
                     <div className="flex flex-wrap gap-1">
                       {contact.raw.tags.map((tag) => (
-                        <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(1,154,103,0.1)", color: "#019A67" }}>
+                        <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(29,182,160,0.1)", color: "#1DB6A0" }}>
                           {tag}
                         </span>
                       ))}
@@ -642,7 +673,7 @@ function ContactPanel({
                   </div>
                 )}
                 {contact.raw.notes && (
-                  <div className="p-3 rounded-xl text-xs text-z-dim" style={{ background: "rgba(1,154,103,0.04)", border: "1px solid rgba(1,154,103,0.1)" }}>
+                  <div className="p-3 rounded-xl text-xs text-z-dim" style={{ background: "rgba(29,182,160,0.04)", border: "1px solid rgba(29,182,160,0.1)" }}>
                     {contact.raw.notes}
                   </div>
                 )}
@@ -653,7 +684,7 @@ function ContactPanel({
                   onClick={() => contact.raw.wa_chat_id && router.push(`/dashboard/chats?open=${contact.raw.wa_chat_id}`)}
                   disabled={!contact.raw.wa_chat_id}
                   className="w-full py-2.5 rounded-xl text-sm text-white font-medium flex items-center justify-center gap-2 disabled:opacity-40"
-                  style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}
+                  style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}
                   title={!contact.raw.wa_chat_id ? "Contato sem WhatsApp vinculado" : undefined}
                 >
                   <MessageCircle size={14} />
@@ -661,8 +692,8 @@ function ContactPanel({
                 </button>
                 <button
                   onClick={() => router.push("/dashboard/agenda")}
-                  className="w-full py-2.5 rounded-xl text-xs text-z-dim flex items-center justify-center gap-2 transition-all hover:bg-[rgba(1,154,103,0.05)]"
-                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}
+                  className="w-full py-2.5 rounded-xl text-xs text-z-dim flex items-center justify-center gap-2 transition-all hover:bg-[rgba(29,182,160,0.05)]"
+                  style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}
                 >
                   <Calendar size={13} />
                   Agendar consulta
@@ -682,7 +713,7 @@ function ContactPanel({
               {loadingAppts ? (
                 <div className="space-y-3">
                   {[1, 2].map((i) => (
-                    <div key={i} className="h-16 rounded-xl animate-pulse" style={{ background: "rgba(1,154,103,0.06)" }} />
+                    <div key={i} className="h-16 rounded-xl animate-pulse" style={{ background: "rgba(29,182,160,0.06)" }} />
                   ))}
                 </div>
               ) : appointments.length === 0 ? (
@@ -697,7 +728,7 @@ function ContactPanel({
                     <div
                       key={appt.id}
                       className="p-3 rounded-xl space-y-2"
-                      style={{ background: "var(--surface-2)", border: "1px solid rgba(1,154,103,0.08)" }}
+                      style={{ background: "var(--surface-2)", border: "1px solid rgba(29,182,160,0.08)" }}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
@@ -732,7 +763,7 @@ function ContactPanel({
                 {loadingNotes ? (
                   <div className="space-y-3">
                     {[1, 2].map((i) => (
-                      <div key={i} className="h-16 rounded-xl animate-pulse" style={{ background: "rgba(1,154,103,0.06)" }} />
+                      <div key={i} className="h-16 rounded-xl animate-pulse" style={{ background: "rgba(29,182,160,0.06)" }} />
                     ))}
                   </div>
                 ) : notes.length === 0 ? (
@@ -745,7 +776,7 @@ function ContactPanel({
                     <div
                       key={note.id}
                       className="p-3 rounded-xl"
-                      style={{ background: "var(--surface-2)", border: "1px solid rgba(1,154,103,0.08)" }}
+                      style={{ background: "var(--surface-2)", border: "1px solid rgba(29,182,160,0.08)" }}
                     >
                       <p className="text-xs text-z-text leading-relaxed">{note.body}</p>
                       <p className="text-[10px] text-z-faint mt-2">{relativeDate(note.created_at)}</p>
@@ -758,7 +789,7 @@ function ContactPanel({
               <div className="p-4 border-t border-border shrink-0">
                 <div
                   className="flex items-end gap-2 rounded-xl p-2"
-                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}
+                  style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}
                 >
                   <textarea
                     ref={noteRef}
@@ -775,7 +806,7 @@ function ContactPanel({
                     onClick={handleAddNote}
                     disabled={!noteText.trim() || savingNote}
                     className="w-7 h-7 rounded-lg flex items-center justify-center text-white disabled:opacity-40 transition-all shrink-0"
-                    style={{ background: "#019A67" }}
+                    style={{ background: "#1DB6A0" }}
                   >
                     <Send size={12} />
                   </button>
@@ -821,14 +852,14 @@ export default function CRMPage() {
     setContacts((prev) =>
       prev.map((c) => {
         if (c.id !== id) return c;
-        const tm = statusTagMap[newStatus] ?? { label: newStatus, color: "#019A67" };
+        const tm = statusTagMap[newStatus] ?? { label: newStatus, color: "#1DB6A0" };
         return { ...c, status: newStatus, tag: tm.label, tagColor: tm.color, raw: { ...c.raw, status: newStatus } };
       })
     );
     if (selectedContact?.id === id) {
       setSelectedContact((prev) => {
         if (!prev) return prev;
-        const tm = statusTagMap[newStatus] ?? { label: newStatus, color: "#019A67" };
+        const tm = statusTagMap[newStatus] ?? { label: newStatus, color: "#1DB6A0" };
         return { ...prev, status: newStatus, tag: tm.label, tagColor: tm.color, raw: { ...prev.raw, status: newStatus } };
       });
     }
@@ -841,32 +872,74 @@ export default function CRMPage() {
   };
 
   const kanbanColumns = [
-    { id: "lead",     label: "Leads",     color: "#019A67",           icon: TrendingUp,   contacts: filteredContacts.filter((c) => c.status === "lead") },
-    { id: "patient",  label: "Pacientes", color: "#01c47f",           icon: Heart,        contacts: filteredContacts.filter((c) => c.status === "patient") },
+    { id: "lead",     label: "Leads",     color: "#1DB6A0",           icon: TrendingUp,   contacts: filteredContacts.filter((c) => c.status === "lead") },
+    { id: "patient",  label: "Pacientes", color: "#22d3c0",           icon: Heart,        contacts: filteredContacts.filter((c) => c.status === "patient") },
     { id: "return",   label: "Retorno",   color: "#f59e0b",           icon: Clock,        contacts: filteredContacts.filter((c) => c.status === "return") },
     { id: "inactive", label: "Inativo",   color: "#6b8f78",           icon: CheckCircle2, contacts: filteredContacts.filter((c) => c.status === "inactive") },
   ];
+  const recentContacts = filteredContacts.filter((contact) => contact.lastContact === "Hoje" || contact.lastContact === "Ontem").length;
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
+    <div className="flex flex-col h-full gap-4 bg-mesh p-4">
       <div
-        className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0"
-        style={{ background: "var(--surface-2)", backdropFilter: "blur(20px)" }}
+        className="rounded-[30px] border px-6 py-5 shrink-0"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, var(--surface-1) 100%)",
+          borderColor: "rgba(29,182,160,0.12)",
+          boxShadow: "var(--z-shadow-md)",
+        }}
       >
-        <div>
-          <h1 className="text-xl text-z-text" style={{ fontWeight: 500 }}>CRM</h1>
-          <p className="text-xs text-z-dim mt-0.5">
-            {loading ? "..." : `${contacts.length} contatos`}
-            {statusFilter !== "all" && ` · filtrado por ${statusTagMap[statusFilter]?.label}`}
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#1DB6A0" }}>
+              Relacionamento clínico
+            </p>
+            <h1 className="text-[24px] mt-2 leading-none" style={{ color: "var(--z-text)", fontFamily: "var(--font-display)", fontWeight: 600 }}>
+              Pacientes
+            </h1>
+            <p className="text-sm mt-2" style={{ color: "var(--z-text-dim)" }}>
+              Visão de relacionamento com hierarquia nova, mantendo todas as ações do CRM intactas.
+            </p>
+          </div>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowNewDialog(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-sm text-white font-medium shrink-0"
+            style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)", boxShadow: "0 0 16px rgba(29,182,160,0.3)" }}
+          >
+            <Plus size={14} />
+            Novo contato
+          </motion.button>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Search */}
+        <div className="grid grid-cols-4 gap-3 mt-5">
+          {[
+            { label: "Base total", value: loading ? "..." : contacts.length, tone: "rgba(29,182,160,0.12)" },
+            { label: "Recentes", value: recentContacts, tone: "rgba(34,211,192,0.14)" },
+            { label: "Leads", value: kanbanColumns[0].contacts.length, tone: "rgba(29,182,160,0.1)" },
+            { label: "Pacientes", value: kanbanColumns[1].contacts.length, tone: "rgba(245,158,11,0.12)" },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-[22px] px-4 py-3"
+              style={{ background: item.tone, border: "1px solid rgba(255,255,255,0.48)" }}
+            >
+              <p className="text-[10px] uppercase tracking-[0.15em]" style={{ color: "var(--z-text-faint)" }}>
+                {item.label}
+              </p>
+              <p className="text-lg mt-1" style={{ color: "var(--z-text)", fontWeight: 600 }}>
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 mt-5">
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-xl"
-            style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-2xl"
+            style={{ background: "rgba(255,255,255,0.82)", border: "1px solid rgba(29,182,160,0.1)" }}
           >
             <Search size={13} className="text-z-dim" />
             <input
@@ -883,15 +956,14 @@ export default function CRMPage() {
             )}
           </div>
 
-          {/* Filter */}
           <div className="relative">
             <button
               onClick={() => setShowFilterMenu((p) => !p)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-z-dim hover:text-z-dim transition-all"
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-2xl text-sm text-z-dim hover:text-z-dim transition-all"
               style={{
-                background: statusFilter !== "all" ? "rgba(1,154,103,0.1)" : "var(--input)",
-                border: statusFilter !== "all" ? "1px solid rgba(1,154,103,0.2)" : "1px solid rgba(1,154,103,0.1)",
-                color: statusFilter !== "all" ? "#019A67" : undefined,
+                background: statusFilter !== "all" ? "rgba(29,182,160,0.1)" : "rgba(255,255,255,0.82)",
+                border: statusFilter !== "all" ? "1px solid rgba(29,182,160,0.2)" : "1px solid rgba(29,182,160,0.1)",
+                color: statusFilter !== "all" ? "#1DB6A0" : undefined,
               }}
             >
               <Filter size={13} />
@@ -905,16 +977,16 @@ export default function CRMPage() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.96 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 top-full mt-1 rounded-xl shadow-2xl z-20 py-1 min-w-32"
-                  style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.15)" }}
+                  className="absolute left-0 top-full mt-1 rounded-2xl shadow-2xl z-20 py-1 min-w-36"
+                  style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.15)" }}
                 >
                   {[{ value: "all", label: "Todos" }, ...statusOptions].map((opt) => (
                     <button
                       key={opt.value}
                       onClick={() => { setStatusFilter(opt.value); setShowFilterMenu(false); }}
-                      className="w-full px-3 py-2 text-left text-xs text-z-dim hover:bg-[rgba(1,154,103,0.06)] flex items-center gap-2 transition-all"
+                      className="w-full px-3 py-2 text-left text-xs text-z-dim hover:bg-[rgba(29,182,160,0.06)] flex items-center gap-2 transition-all"
                     >
-                      {statusFilter === opt.value && <Check size={10} className="text-[#019A67]" />}
+                      {statusFilter === opt.value && <Check size={10} className="text-[#1DB6A0]" />}
                       <span style={{ marginLeft: statusFilter === opt.value ? 0 : 14 }}>{opt.label}</span>
                     </button>
                   ))}
@@ -923,49 +995,42 @@ export default function CRMPage() {
             </AnimatePresence>
           </div>
 
-          {/* View toggle */}
-          <div
-            className="flex items-center p-0.5 rounded-xl"
-            style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}
-          >
+          <div className="flex items-center p-0.5 rounded-2xl" style={{ background: "rgba(255,255,255,0.82)", border: "1px solid rgba(29,182,160,0.1)" }}>
             <button
               onClick={() => setView("list")}
               className={cn(
-                "p-1.5 rounded-lg transition-all duration-200",
-                view === "list" ? "text-[#019A67] bg-[rgba(1,154,103,0.15)]" : "text-z-dim hover:text-z-dim"
+                "px-3 py-2 rounded-xl transition-all duration-200 flex items-center gap-1.5 text-xs",
+                view === "list" ? "text-[#1DB6A0] bg-[rgba(29,182,160,0.15)]" : "text-z-dim hover:text-z-dim"
               )}
             >
-              <LayoutList size={15} />
+              <LayoutList size={14} />
+              Lista
             </button>
             <button
               onClick={() => setView("kanban")}
               className={cn(
-                "p-1.5 rounded-lg transition-all duration-200",
-                view === "kanban" ? "text-[#019A67] bg-[rgba(1,154,103,0.15)]" : "text-z-dim hover:text-z-dim"
+                "px-3 py-2 rounded-xl transition-all duration-200 flex items-center gap-1.5 text-xs",
+                view === "kanban" ? "text-[#1DB6A0] bg-[rgba(29,182,160,0.15)]" : "text-z-dim hover:text-z-dim"
               )}
             >
-              <Kanban size={15} />
+              <Kanban size={14} />
+              Fluxo
             </button>
           </div>
-
-          {/* Add button */}
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setShowNewDialog(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-white font-medium"
-            style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 16px rgba(1,154,103,0.3)" }}
-          >
-            <Plus size={14} />
-            Novo contato
-          </motion.button>
         </div>
       </div>
 
       {/* Main layout */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden gap-4 min-h-0">
         {/* Content */}
-        <div className={cn("flex-1 overflow-auto p-6", selectedContact && "pr-3")}>
+        <div
+          className={cn("flex-1 overflow-auto rounded-[30px] border p-4", selectedContact && "pr-4")}
+          style={{
+            background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, var(--surface-1) 100%)",
+            borderColor: "rgba(29,182,160,0.12)",
+            boxShadow: "var(--z-shadow-md)",
+          }}
+        >
           <AnimatePresence mode="wait">
             {view === "list" ? (
               <motion.div
@@ -976,13 +1041,13 @@ export default function CRMPage() {
                 transition={{ duration: 0.25 }}
               >
                 <div
-                  className="rounded-2xl overflow-hidden"
-                  style={{ background: "var(--surface-2)", border: "1px solid rgba(1,154,103,0.1)" }}
+                  className="rounded-[26px] overflow-hidden"
+                  style={{ background: "rgba(255,255,255,0.82)", border: "1px solid rgba(29,182,160,0.1)" }}
                 >
                   {/* Table head */}
                   <div
-                    className="grid grid-cols-12 gap-4 px-5 py-3 text-xs text-z-dim font-medium border-b border-border"
-                    style={{ background: "var(--surface-1)" }}
+                    className="grid grid-cols-12 gap-4 px-5 py-3 text-xs text-z-dim font-medium border-b"
+                    style={{ background: "rgba(29,182,160,0.06)", borderColor: "rgba(29,182,160,0.08)" }}
                   >
                     <div className="col-span-3 flex items-center gap-2"><User size={12} />Nome</div>
                     <div className="col-span-2">Telefone</div>
@@ -996,18 +1061,18 @@ export default function CRMPage() {
                     Array.from({ length: 5 }).map((_, i) => (
                       <div key={i} className="grid grid-cols-12 gap-4 px-5 py-3.5 border-b border-border">
                         <div className="col-span-3 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl animate-pulse" style={{ background: "rgba(1,154,103,0.08)" }} />
-                          <div className="h-3 w-28 rounded animate-pulse" style={{ background: "rgba(1,154,103,0.06)" }} />
+                          <div className="w-8 h-8 rounded-xl animate-pulse" style={{ background: "rgba(29,182,160,0.08)" }} />
+                          <div className="h-3 w-28 rounded animate-pulse" style={{ background: "rgba(29,182,160,0.06)" }} />
                         </div>
                         <div className="col-span-9 flex items-center">
-                          <div className="h-3 w-full rounded animate-pulse" style={{ background: "rgba(1,154,103,0.04)" }} />
+                          <div className="h-3 w-full rounded animate-pulse" style={{ background: "rgba(29,182,160,0.04)" }} />
                         </div>
                       </div>
                     ))
                   ) : filteredContacts.length === 0 ? (
                     <div className="px-5 py-12 text-center">
                       <p className="text-sm text-z-dim">Nenhum contato encontrado</p>
-                      <button onClick={() => setShowNewDialog(true)} className="mt-3 text-xs text-[#019A67] hover:text-[#01c47f]">
+                      <button onClick={() => setShowNewDialog(true)} className="mt-3 text-xs text-[#1DB6A0] hover:text-[#22d3c0]">
                         + Criar contato
                       </button>
                     </div>
@@ -1020,20 +1085,21 @@ export default function CRMPage() {
                         transition={{ delay: i * 0.03 }}
                         onClick={() => setSelectedContact(selectedContact?.id === contact.id ? null : contact)}
                         className={cn(
-                          "grid grid-cols-12 gap-4 px-5 py-3.5 border-b border-border cursor-pointer transition-all group",
+                          "grid grid-cols-12 gap-4 px-5 py-3.5 border-b cursor-pointer transition-all group",
                           selectedContact?.id === contact.id
-                            ? "bg-[rgba(1,154,103,0.06)]"
-                            : "hover:bg-[rgba(1,154,103,0.04)]"
+                            ? "bg-[rgba(29,182,160,0.06)]"
+                            : "hover:bg-[rgba(29,182,160,0.04)]"
                         )}
+                        style={{ borderColor: "rgba(29,182,160,0.08)" }}
                       >
                         <div className="col-span-3 flex items-center gap-3">
                           <div
                             className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-medium text-white shrink-0"
-                            style={{ background: "linear-gradient(135deg, rgba(1,154,103,0.5), rgba(1,154,103,0.8))" }}
+                            style={{ background: "linear-gradient(135deg, rgba(29,182,160,0.5), rgba(29,182,160,0.8))" }}
                           >
                             {initials(contact.name)}
                           </div>
-                          <span className={cn("text-sm font-medium truncate transition-colors", selectedContact?.id === contact.id ? "text-[#01c47f]" : "text-z-text group-hover:text-[#01c47f]")}>
+                          <span className={cn("text-sm font-medium truncate transition-colors", selectedContact?.id === contact.id ? "text-[#22d3c0]" : "text-z-text group-hover:text-[#22d3c0]")}>
                             {contact.name}
                           </span>
                         </div>
@@ -1058,7 +1124,7 @@ export default function CRMPage() {
 
                         <div className="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
-                            className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:text-[#019A67] hover:bg-[rgba(1,154,103,0.1)] transition-all"
+                            className="w-6 h-6 rounded-lg flex items-center justify-center text-z-dim hover:text-[#1DB6A0] hover:bg-[rgba(29,182,160,0.1)] transition-all"
                             onClick={(e) => { e.stopPropagation(); }}
                           >
                             <ChevronRight size={12} />
@@ -1076,7 +1142,7 @@ export default function CRMPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.25 }}
-                className="flex gap-4 h-full overflow-x-auto pb-4"
+                className="flex gap-4 h-full overflow-x-auto p-1 pb-4"
               >
                 {kanbanColumns.map((col, ci) => {
                   const Icon = col.icon;
@@ -1118,16 +1184,16 @@ export default function CRMPage() {
                             onClick={() => setSelectedContact(selectedContact?.id === contact.id ? null : contact)}
                             className="p-4 rounded-xl cursor-pointer group transition-all duration-200"
                             style={{
-                              background: selectedContact?.id === contact.id ? "rgba(1,154,103,0.08)" : "var(--surface-1)",
-                              border: selectedContact?.id === contact.id ? "1px solid rgba(1,154,103,0.3)" : "1px solid rgba(1,154,103,0.1)",
+                              background: selectedContact?.id === contact.id ? "rgba(29,182,160,0.08)" : "var(--surface-1)",
+                              border: selectedContact?.id === contact.id ? "1px solid rgba(29,182,160,0.3)" : "1px solid rgba(29,182,160,0.1)",
                             }}
-                            whileHover={{ borderColor: "rgba(1,154,103,0.25)", background: "rgba(1,154,103,0.05)" }}
+                            whileHover={{ borderColor: "rgba(29,182,160,0.25)", background: "rgba(29,182,160,0.05)" }}
                           >
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2.5">
                                 <div
                                   className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-medium text-white"
-                                  style={{ background: "linear-gradient(135deg, rgba(1,154,103,0.5), rgba(1,154,103,0.8))" }}
+                                  style={{ background: "linear-gradient(135deg, rgba(29,182,160,0.5), rgba(29,182,160,0.8))" }}
                                 >
                                   {initials(contact.name)}
                                 </div>

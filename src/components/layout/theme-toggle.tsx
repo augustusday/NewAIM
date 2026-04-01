@@ -1,44 +1,66 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
-import { motion } from "framer-motion";
+import { SunMedium, MoonStar } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/hooks/use-theme";
 
 export function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
-  const { theme, toggle } = useTheme();
-  const isDark = theme === "dark";
+  const { toggle } = useTheme();
+  const isDark = false; // light mode only
 
   return (
-    <motion.button
-      whileTap={{ scale: 0.9 }}
+    <button
       onClick={toggle}
-      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 text-[var(--sidebar-text-dim)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-active-text)]"
-      title={isDark ? "Modo claro" : "Modo escuro"}
+      title={isDark ? "Mudar para modo claro" : "Mudar para modo escuro"}
+      className="w-full flex items-center gap-3 rounded-lg"
+      style={{
+        padding: collapsed ? "9px 10px" : "9px 12px",
+        color: "var(--sidebar-text-dim)",
+        transition: "background 180ms ease",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.background =
+          "var(--sidebar-hover-bg)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+      }}
     >
-      <div className="relative shrink-0 w-[18px] h-[18px]">
+      {/* Icon swap */}
+      <div
+        className="relative shrink-0 flex items-center justify-center"
+        style={{ width: 16, height: 16, marginLeft: 4 }}
+      >
         <motion.div
-          initial={false}
-          animate={{ opacity: isDark ? 0 : 1, scale: isDark ? 0 : 1 }}
-          transition={{ duration: 0.2 }}
+          animate={{ opacity: isDark ? 0 : 1, scale: isDark ? 0.6 : 1, rotate: isDark ? -30 : 0 }}
+          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
           className="absolute inset-0 flex items-center justify-center"
         >
-          <Sun size={18} />
+          <SunMedium size={16} strokeWidth={1.75} />
         </motion.div>
         <motion.div
-          initial={false}
-          animate={{ opacity: isDark ? 1 : 0, scale: isDark ? 1 : 0 }}
-          transition={{ duration: 0.2 }}
+          animate={{ opacity: isDark ? 1 : 0, scale: isDark ? 1 : 0.6, rotate: isDark ? 0 : 30 }}
+          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
           className="absolute inset-0 flex items-center justify-center"
         >
-          <Moon size={18} />
+          <MoonStar size={15} strokeWidth={1.75} />
         </motion.div>
       </div>
 
-      {!collapsed && (
-        <span className="text-sm font-medium">
-          {isDark ? "Modo escuro" : "Modo claro"}
-        </span>
-      )}
-    </motion.button>
+      <AnimatePresence initial={false}>
+        {!collapsed && (
+          <motion.span
+            key="theme-label"
+            initial={{ opacity: 0, width: 0 }}
+            animate={{ opacity: 1, width: "auto" }}
+            exit={{ opacity: 0, width: 0 }}
+            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+            className="text-[13px] font-medium truncate overflow-hidden whitespace-nowrap"
+          >
+            {isDark ? "Modo escuro" : "Modo claro"}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </button>
   );
 }

@@ -1,20 +1,27 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { Plus_Jakarta_Sans, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
+const jakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+});
+
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Zelus — Plataforma Clínica",
+  title: "AgendaIAMed — Plataforma Clínica",
   description: "Sistema de gestão para clínicas médicas",
   icons: {
-    icon: "/icon.png",
-    apple: "/icon.png",
+    icon: "/brand-mark-square.png?v=20260401-2",
+    apple: "/brand-mark-square.png?v=20260401-2",
   },
 };
 
@@ -24,15 +31,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={outfit.variable} suppressHydrationWarning>
+    <html
+      lang="pt-BR"
+      className={`${jakartaSans.variable} ${bricolage.variable}`}
+      suppressHydrationWarning
+    >
       <head>
-        {/* Prevent flash on theme init */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 try {
-                  var t = localStorage.getItem('zelus-theme');
+                  var t = localStorage.getItem('agendaiamed-theme');
                   if (t === 'dark') document.documentElement.classList.add('dark');
                 } catch(e) {}
               })();
@@ -40,7 +50,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full font-sans antialiased bg-[var(--background)] text-[var(--foreground)]">
+      <body className="min-h-full antialiased bg-[var(--background)] text-[var(--foreground)]">
         {children}
       </body>
     </html>

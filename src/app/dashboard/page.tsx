@@ -33,11 +33,11 @@ const fadeUp = {
 };
 
 const statusColors: Record<string, string> = {
-  confirmed: "#019A67",
+  confirmed: "#1DB6A0",
   scheduled: "#f59e0b",
   cancelled: "#e05555",
   completed: "#6b8f78",
-  in_progress: "#01c47f",
+  in_progress: "#22d3c0",
   no_show: "#e05555",
 };
 
@@ -136,6 +136,13 @@ export default function DashboardPage() {
 
   const statCards = [
     {
+      label: "Chats abertos",
+      value: loading ? "—" : String(stats?.open_chats ?? 0),
+      icon: MessageCircle,
+      sub: `${stats?.total_unread ?? 0} mensagens não lidas`,
+      positive: (stats?.total_unread ?? 0) === 0,
+    },
+    {
       label: "Consultas hoje",
       value: loading ? "—" : String(stats?.appointments_today ?? 0),
       icon: CalendarDays,
@@ -148,13 +155,6 @@ export default function DashboardPage() {
       icon: Users,
       sub: `${stats?.new_contacts_month ?? 0} novos este mês`,
       positive: true,
-    },
-    {
-      label: "Chats abertos",
-      value: loading ? "—" : String(stats?.open_chats ?? 0),
-      icon: MessageCircle,
-      sub: `${stats?.total_unread ?? 0} mensagens não lidas`,
-      positive: (stats?.total_unread ?? 0) === 0,
     },
     {
       label: "Consultas no mês",
@@ -171,8 +171,8 @@ export default function DashboardPage() {
       <motion.div {...fadeUp} className="flex items-center justify-between">
         <div>
           <h1
-            className="text-2xl text-z-text"
-            style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 500 }}
+            className="text-2xl text-z-text font-display"
+            style={{ fontFamily: "var(--font-display)", fontWeight: 600, letterSpacing: "-0.02em" }}
           >
             {greeting}, {user?.full_name ?? "—"}
           </h1>
@@ -180,15 +180,15 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <div
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs text-[#01c47f]"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs text-[#22d3c0]"
             style={{
-              background: "rgba(1,154,103,0.1)",
-              border: "1px solid rgba(1,154,103,0.2)",
+              background: "rgba(29,182,160,0.1)",
+              border: "1px solid rgba(29,182,160,0.2)",
             }}
           >
             <div className="relative">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#019A67]" />
-              <div className="absolute inset-0 rounded-full bg-[#019A67] animate-ping opacity-60" />
+              <div className="w-1.5 h-1.5 rounded-full bg-[#1DB6A0]" />
+              <div className="absolute inset-0 rounded-full bg-[#1DB6A0] animate-ping opacity-60" />
             </div>
             Sistema ativo
           </div>
@@ -208,7 +208,7 @@ export default function DashboardPage() {
               className="relative rounded-2xl p-5 overflow-hidden cursor-pointer group"
               style={{
                 background: "var(--surface-1)",
-                border: "1px solid rgba(1,154,103,0.12)",
+                border: "1px solid rgba(29,182,160,0.12)",
                 backdropFilter: "blur(20px)",
               }}
             >
@@ -216,7 +216,7 @@ export default function DashboardPage() {
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"
                 style={{
                   background:
-                    "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(1,154,103,0.08) 0%, transparent 70%)",
+                    "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(29,182,160,0.08) 0%, transparent 70%)",
                 }}
               />
 
@@ -224,17 +224,17 @@ export default function DashboardPage() {
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center"
                   style={{
-                    background: "rgba(1,154,103,0.12)",
-                    border: "1px solid rgba(1,154,103,0.2)",
+                    background: "rgba(29,182,160,0.12)",
+                    border: "1px solid rgba(29,182,160,0.2)",
                   }}
                 >
-                  <Icon size={17} style={{ color: "#019A67" }} />
+                  <Icon size={17} style={{ color: "#1DB6A0" }} />
                 </div>
                 <div
                   className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg font-medium"
                   style={{
-                    background: "rgba(1,154,103,0.1)",
-                    color: "#01c47f",
+                    background: "rgba(29,182,160,0.1)",
+                    color: "#22d3c0",
                   }}
                 >
                   <ArrowUpRight size={12} />
@@ -255,92 +255,32 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Charts row */}
+      {/* Charts row — Médicos first (1 col), bar chart second (2 cols) */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        {/* Bar chart */}
+        {/* Top doctors — now first */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
-          className="xl:col-span-2 rounded-2xl p-5"
-          style={{
-            background: "var(--surface-1)",
-            border: "1px solid rgba(1,154,103,0.12)",
-          }}
-        >
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h3 className="text-sm font-medium text-z-text">Consultas por dia</h3>
-              <p className="text-xs text-z-dim mt-0.5">Últimos 7 dias</p>
-            </div>
-            <div
-              className="flex items-center gap-1.5 text-xs text-[#019A67] px-2.5 py-1 rounded-lg"
-              style={{ background: "rgba(1,154,103,0.1)" }}
-            >
-              <Activity size={12} />
-              {totalWeek} total
-            </div>
-          </div>
-
-          <div className="flex items-end gap-3 h-32">
-            {bars.map((d, i) => (
-              <motion.div
-                key={d.day + i}
-                className="flex-1 flex flex-col items-center gap-2"
-                initial={{ opacity: 0, scaleY: 0 }}
-                animate={{ opacity: 1, scaleY: 1 }}
-                transition={{
-                  delay: 0.4 + i * 0.06,
-                  duration: 0.4,
-                  ease: "easeOut" as const,
-                }}
-                style={{ transformOrigin: "bottom" }}
-              >
-                <span className="text-[10px] text-z-dim">{d.value}</span>
-                <div
-                  className="w-full rounded-lg"
-                  style={{
-                    height: `${(d.value / maxVal) * 96}px`,
-                    background: d.isToday
-                      ? "linear-gradient(180deg, #01c47f 0%, #019A67 100%)"
-                      : "rgba(1,154,103,0.2)",
-                    border: d.isToday
-                      ? "1px solid rgba(1,196,127,0.4)"
-                      : "1px solid rgba(1,154,103,0.15)",
-                    boxShadow: d.isToday ? "0 0 12px rgba(1,154,103,0.25)" : "none",
-                    minHeight: "4px",
-                  }}
-                />
-                <span className="text-[10px] text-z-faint">{d.day}</span>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Top doctors */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.5 }}
           className="rounded-2xl p-5"
           style={{
             background: "var(--surface-1)",
-            border: "1px solid rgba(1,154,103,0.12)",
+            border: "1px solid rgba(29,182,160,0.12)",
           }}
         >
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-medium text-z-text">Médicos</h3>
-            <Zap size={14} style={{ color: "#019A67" }} />
+            <Zap size={14} style={{ color: "#1DB6A0" }} />
           </div>
 
           {loading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-[rgba(1,154,103,0.08)] animate-pulse shrink-0" />
+                  <div className="w-8 h-8 rounded-xl bg-[rgba(29,182,160,0.08)] animate-pulse shrink-0" />
                   <div className="flex-1 space-y-1.5">
-                    <div className="h-3 w-24 bg-[rgba(1,154,103,0.08)] rounded animate-pulse" />
-                    <div className="h-2 w-16 bg-[rgba(1,154,103,0.05)] rounded animate-pulse" />
+                    <div className="h-3 w-24 bg-[rgba(29,182,160,0.08)] rounded animate-pulse" />
+                    <div className="h-2 w-16 bg-[rgba(29,182,160,0.05)] rounded animate-pulse" />
                   </div>
                 </div>
               ))}
@@ -357,7 +297,7 @@ export default function DashboardPage() {
                 >
                   <div
                     className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-semibold text-white shrink-0"
-                    style={{ background: doc.color || "#019A67" }}
+                    style={{ background: doc.color || "#1DB6A0" }}
                   >
                     {initials(doc.name)}
                   </div>
@@ -386,6 +326,60 @@ export default function DashboardPage() {
             </div>
           )}
         </motion.div>
+
+        {/* Bar chart — now second, spanning 2 cols */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.5 }}
+          className="xl:col-span-2 rounded-2xl p-5"
+          style={{
+            background: "var(--surface-1)",
+            border: "1px solid rgba(29,182,160,0.12)",
+          }}
+        >
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h3 className="text-sm font-medium text-z-text">Consultas por dia</h3>
+              <p className="text-xs text-z-dim mt-0.5">Últimos 7 dias</p>
+            </div>
+            <div
+              className="flex items-center gap-1.5 text-xs text-[#1DB6A0] px-2.5 py-1 rounded-lg"
+              style={{ background: "rgba(29,182,160,0.1)" }}
+            >
+              <Activity size={12} />
+              {totalWeek} total
+            </div>
+          </div>
+
+          <div className="flex items-end gap-3 h-32">
+            {bars.map((d, i) => (
+              <motion.div
+                key={d.day + i}
+                className="flex-1 flex flex-col items-center gap-2"
+                initial={{ opacity: 0, scaleY: 0 }}
+                animate={{ opacity: 1, scaleY: 1 }}
+                transition={{ delay: 0.4 + i * 0.06, duration: 0.4, ease: "easeOut" as const }}
+                style={{ transformOrigin: "bottom" }}
+              >
+                <span className="text-[10px] text-z-dim">{d.value}</span>
+                <div
+                  className="w-full rounded-lg"
+                  style={{
+                    height: `${(d.value / maxVal) * 96}px`,
+                    background: d.isToday
+                      ? "linear-gradient(180deg, #22d3c0 0%, #1DB6A0 100%)"
+                      : "rgba(29,182,160,0.2)",
+                    border: d.isToday ? "1px solid rgba(1,196,127,0.4)" : "1px solid rgba(29,182,160,0.15)",
+                    boxShadow: d.isToday ? "0 0 12px rgba(29,182,160,0.25)" : "none",
+                    minHeight: "4px",
+                  }}
+                />
+                <span className="text-[10px] text-z-faint">{d.day}</span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
       </div>
 
       {/* Today appointments */}
@@ -396,7 +390,7 @@ export default function DashboardPage() {
         className="rounded-2xl"
         style={{
           background: "var(--surface-1)",
-          border: "1px solid rgba(1,154,103,0.12)",
+          border: "1px solid rgba(29,182,160,0.12)",
         }}
       >
         <div className="flex items-center justify-between p-5 border-b border-border">
@@ -406,7 +400,7 @@ export default function DashboardPage() {
               {loading ? "..." : `${appointments.length} agendamentos`}
             </p>
           </div>
-          <Link href="/dashboard/agenda" className="text-xs text-[#019A67] hover:text-[#01c47f] transition-colors">
+          <Link href="/dashboard/agenda" className="text-xs text-[#1DB6A0] hover:text-[#22d3c0] transition-colors">
             Ver todos →
           </Link>
         </div>
@@ -415,10 +409,10 @@ export default function DashboardPage() {
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="flex items-center gap-4 px-5 py-3.5">
-                <div className="w-8 h-8 rounded-xl bg-[rgba(1,154,103,0.08)] animate-pulse shrink-0" />
+                <div className="w-8 h-8 rounded-xl bg-[rgba(29,182,160,0.08)] animate-pulse shrink-0" />
                 <div className="flex-1 space-y-1.5">
-                  <div className="h-3 w-32 bg-[rgba(1,154,103,0.08)] rounded animate-pulse" />
-                  <div className="h-2 w-24 bg-[rgba(1,154,103,0.05)] rounded animate-pulse" />
+                  <div className="h-3 w-32 bg-[rgba(29,182,160,0.08)] rounded animate-pulse" />
+                  <div className="h-2 w-24 bg-[rgba(29,182,160,0.05)] rounded animate-pulse" />
                 </div>
               </div>
             ))
@@ -433,14 +427,14 @@ export default function DashboardPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 + i * 0.06 }}
-                className="flex items-center gap-4 px-5 py-3.5 hover:bg-[rgba(1,154,103,0.03)] transition-colors"
+                className="flex items-center gap-4 px-5 py-3.5 hover:bg-[rgba(29,182,160,0.03)] transition-colors"
               >
                 <div
                   className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-medium shrink-0"
                   style={{
-                    background: "rgba(1,154,103,0.12)",
-                    color: "#01c47f",
-                    border: "1px solid rgba(1,154,103,0.2)",
+                    background: "rgba(29,182,160,0.12)",
+                    color: "#22d3c0",
+                    border: "1px solid rgba(29,182,160,0.2)",
                   }}
                 >
                   {initials(appt.patient_name)}
@@ -466,7 +460,7 @@ export default function DashboardPage() {
                     <span
                       className="text-xs px-2 py-0.5 rounded-md"
                       style={{
-                        background: "rgba(1,154,103,0.08)",
+                        background: "rgba(29,182,160,0.08)",
                         color: "var(--z-text-dim)",
                       }}
                     >

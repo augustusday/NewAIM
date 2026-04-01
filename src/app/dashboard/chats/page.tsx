@@ -71,9 +71,9 @@ function VoicePlayer({ src, fromMe }: { src: string; fromMe: boolean }) {
     return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
-  const accent = fromMe ? "rgba(255,255,255,0.9)" : "#019A67";
-  const trackBg = fromMe ? "rgba(255,255,255,0.2)" : "rgba(1,154,103,0.18)";
-  const fillBg  = fromMe ? "rgba(255,255,255,0.85)" : "#019A67";
+  const accent = fromMe ? "rgba(255,255,255,0.9)" : "#1DB6A0";
+  const trackBg = fromMe ? "rgba(255,255,255,0.2)" : "rgba(29,182,160,0.18)";
+  const fillBg  = fromMe ? "rgba(255,255,255,0.85)" : "#1DB6A0";
   const timeFg  = fromMe ? "rgba(255,255,255,0.65)" : "#4a6a58";
 
   return (
@@ -94,7 +94,7 @@ function VoicePlayer({ src, fromMe }: { src: string; fromMe: boolean }) {
       <button
         onClick={toggle}
         className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-transform active:scale-90"
-        style={{ background: fromMe ? "rgba(255,255,255,0.2)" : "rgba(1,154,103,0.12)", color: accent }}
+        style={{ background: fromMe ? "rgba(255,255,255,0.2)" : "rgba(29,182,160,0.12)", color: accent }}
       >
         {playing ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" style={{ marginLeft: "1px" }} />}
       </button>
@@ -490,6 +490,15 @@ export default function ChatsPage() {
     showRefreshing?: boolean;
     forceReloadSelectedMessages?: boolean;
   }) => {
+    if (!clinicId) {
+      setSessions([]);
+      setSelectedSession(null);
+      selectedSessionRef.current = null;
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     if (refreshInFlightRef.current) return;
     refreshInFlightRef.current = true;
 
@@ -553,7 +562,16 @@ export default function ChatsPage() {
   }, [clinicId]);
 
   useEffect(() => {
-    if (!clinicLoaded) return;
+    if (!clinicLoaded || !clinicId) {
+      if (clinicLoaded) {
+        setSessions([]);
+        setSelectedSession(null);
+        selectedSessionRef.current = null;
+        setLoading(false);
+      }
+      return;
+    }
+
     refreshSessions({ syncWithRemote: !synced, showLoading: true }).then(() => {
       if (!synced) setSynced(true);
     });
@@ -561,12 +579,12 @@ export default function ChatsPage() {
   }, [clinicId, clinicLoaded, activeFilter]);
 
   useEffect(() => {
-    if (!clinicLoaded || !synced) return;
+    if (!clinicLoaded || !clinicId || !synced) return;
     pollRef.current = setInterval(() => {
       void refreshSessions({ syncWithRemote: true });
     }, 8000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [clinicLoaded, refreshSessions, synced]);
+  }, [clinicId, clinicLoaded, refreshSessions, synced]);
 
   useEffect(() => {
     if (!clinicLoaded || !clinicId) return;
@@ -657,34 +675,81 @@ export default function ChatsPage() {
   const selectedName = selectedSession
     ? (selectedSession.wa_contact_name ?? selectedSession.contact?.full_name ?? selectedSession.wa_phone ?? "Chat")
     : "";
+  const unreadSessions = filteredSessions.filter((session) => session.unread_count > 0).length;
+  const aiPausedSessions = filteredSessions.filter((session) => session.ai_paused).length;
+  const activeSessions = filteredSessions.length - aiPausedSessions;
 
   return (
-    <div className="flex h-full">
-      {/* Sidebar */}
-      <div className="w-80 flex flex-col border-r border-[rgba(1,154,103,0.12)] shrink-0" style={{ background: "var(--surface-2)" }}>
-        {/* Header */}
-        <div className="p-4 border-b border-border">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-z-text">Conversas</h2>
+    <div className="flex h-full gap-4 bg-mesh p-4">
+      <div
+        className="w-[22rem] shrink-0 overflow-hidden rounded-[30px] border flex flex-col"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,0.94) 0%, var(--surface-1) 100%)",
+          borderColor: "rgba(29,182,160,0.12)",
+          boxShadow: "var(--z-shadow-md)",
+        }}
+      >
+        <div
+          className="p-4 border-b"
+          style={{
+            borderColor: "rgba(29,182,160,0.1)",
+            background: "linear-gradient(180deg, rgba(29,182,160,0.08) 0%, rgba(29,182,160,0.02) 100%)",
+          }}
+        >
+          <div className="flex items-start justify-between mb-4 gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ color: "#1DB6A0" }}>
+                Central de mensagens
+              </p>
+              <h2 className="text-[20px] leading-none mt-2" style={{ color: "var(--z-text)", fontFamily: "var(--font-display)", fontWeight: 600 }}>
+                Conversas
+              </h2>
+              <p className="text-xs mt-2 max-w-[16rem]" style={{ color: "var(--z-text-dim)" }}>
+                Fila de atendimento com outra leitura visual, sem mexer na operação do chat.
+              </p>
+            </div>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => void refreshSessions({ syncWithRemote: true, showRefreshing: true, forceReloadSelectedMessages: true })}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#019A67] hover:bg-[rgba(1,154,103,0.1)] transition-all"
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-z-dim hover:text-[#1DB6A0] hover:bg-[rgba(29,182,160,0.1)] transition-all"
                 title="Atualizar"
               >
                 <RefreshCw size={13} className={refreshing ? "animate-spin" : undefined} />
               </button>
-              <button className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#019A67] hover:bg-[rgba(1,154,103,0.1)] transition-all">
+              <button className="w-8 h-8 rounded-xl flex items-center justify-center text-z-dim hover:text-[#1DB6A0] hover:bg-[rgba(29,182,160,0.1)] transition-all">
                 <Filter size={13} />
               </button>
-              <button className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-[#019A67] hover:bg-[rgba(1,154,103,0.1)] transition-all">
+              <button className="w-8 h-8 rounded-xl flex items-center justify-center text-z-dim hover:text-[#1DB6A0] hover:bg-[rgba(29,182,160,0.1)] transition-all">
                 <Plus size={13} />
               </button>
             </div>
           </div>
 
-          {/* Search */}
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {[
+              { label: "Na fila", value: filteredSessions.length, tone: "rgba(29,182,160,0.12)" },
+              { label: "Não lidas", value: unreadSessions, tone: "rgba(245,158,11,0.14)" },
+              { label: "IA ativa", value: activeSessions, tone: "rgba(34,211,192,0.16)" },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-2xl px-3 py-2.5"
+                style={{ background: item.tone, border: "1px solid rgba(255,255,255,0.45)" }}
+              >
+                <p className="text-[10px] uppercase tracking-[0.16em]" style={{ color: "var(--z-text-faint)" }}>
+                  {item.label}
+                </p>
+                <p className="text-base mt-1" style={{ color: "var(--z-text)", fontWeight: 600 }}>
+                  {item.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div
+            className="flex items-center gap-2 px-3 py-2.5 rounded-2xl"
+            style={{ background: "rgba(255,255,255,0.82)", border: "1px solid rgba(29,182,160,0.1)" }}
+          >
             <Search size={13} className="text-z-dim shrink-0" />
             <input
               type="text"
@@ -695,19 +760,18 @@ export default function ChatsPage() {
             />
           </div>
 
-          {/* Filters */}
           <div className="flex gap-1.5 mt-3 overflow-x-auto pb-0.5">
             {filters.map((f) => (
               <button
                 key={f.key}
                 onClick={() => setActiveFilter(f.key)}
-                className={cn("text-xs px-2.5 py-1 rounded-lg whitespace-nowrap transition-all duration-200 shrink-0",
-                  activeFilter === f.key ? "text-[#01c47f]" : "text-z-dim hover:text-z-dim"
+                className={cn(
+                  "text-xs px-3 py-1.5 rounded-full whitespace-nowrap transition-all duration-200 shrink-0",
+                  activeFilter === f.key ? "text-[#22d3c0]" : "text-z-dim hover:text-z-dim"
                 )}
                 style={activeFilter === f.key
-                  ? { background: "rgba(1,154,103,0.15)", border: "1px solid rgba(1,154,103,0.25)" }
-                  : { background: "var(--muted)", border: "1px solid rgba(255,255,255,0.06)" }
-                }
+                  ? { background: "rgba(29,182,160,0.15)", border: "1px solid rgba(29,182,160,0.25)" }
+                  : { background: "rgba(255,255,255,0.72)", border: "1px solid rgba(29,182,160,0.08)" }}
               >
                 {f.label}
               </button>
@@ -715,15 +779,18 @@ export default function ChatsPage() {
           </div>
         </div>
 
-        {/* List */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto p-3">
           {loading ? (
             Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3 px-4 py-3.5 border-b border-border">
-                <div className="w-10 h-10 rounded-full animate-pulse shrink-0" style={{ background: "rgba(1,154,103,0.08)" }} />
+              <div
+                key={i}
+                className="flex items-center gap-3 px-4 py-3.5 rounded-[24px] mb-2"
+                style={{ background: "rgba(29,182,160,0.04)", border: "1px solid rgba(29,182,160,0.08)" }}
+              >
+                <div className="w-11 h-11 rounded-[18px] animate-pulse shrink-0" style={{ background: "rgba(29,182,160,0.08)" }} />
                 <div className="flex-1 space-y-2">
-                  <div className="h-3 w-28 rounded animate-pulse" style={{ background: "rgba(1,154,103,0.06)" }} />
-                  <div className="h-2.5 w-40 rounded animate-pulse" style={{ background: "rgba(1,154,103,0.04)" }} />
+                  <div className="h-3 w-28 rounded animate-pulse" style={{ background: "rgba(29,182,160,0.06)" }} />
+                  <div className="h-2.5 w-40 rounded animate-pulse" style={{ background: "rgba(29,182,160,0.04)" }} />
                 </div>
               </div>
             ))
@@ -739,7 +806,7 @@ export default function ChatsPage() {
                 <>
                   <WifiOff size={32} className="text-z-faint" />
                   <p className="text-sm text-z-dim">WhatsApp não configurado</p>
-                  <a href="/dashboard/settings" className="text-xs text-[#019A67] hover:text-[#01c47f] transition-colors">
+                  <a href="/dashboard/settings" className="text-xs text-[#1DB6A0] hover:text-[#22d3c0] transition-colors">
                     Configurar em Configurações →
                   </a>
                 </>
@@ -758,48 +825,49 @@ export default function ChatsPage() {
                     transition={{ delay: i * 0.03 }}
                     onClick={() => handleSelectSession(session)}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-all duration-150 border-b border-border",
-                      isSelected ? "bg-[rgba(1,154,103,0.08)]" : "hover:bg-[rgba(1,154,103,0.04)]"
+                      "flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-all duration-150 rounded-[24px] mb-2 border",
+                      isSelected ? "bg-[rgba(29,182,160,0.08)]" : "hover:bg-[rgba(29,182,160,0.04)]"
                     )}
+                    style={{ borderColor: isSelected ? "rgba(29,182,160,0.22)" : "rgba(29,182,160,0.08)" }}
                   >
-                    {/* Avatar */}
                     <div className="relative shrink-0">
                       {session.wa_profile_pic ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={session.wa_profile_pic} alt={name} className="w-10 h-10 rounded-full object-cover" />
+                        <img src={session.wa_profile_pic} alt={name} className="w-11 h-11 rounded-[18px] object-cover" />
                       ) : (
                         <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium text-white"
+                          className="w-11 h-11 rounded-[18px] flex items-center justify-center text-sm font-medium text-white"
                           style={{ background: session.ai_paused
                             ? "linear-gradient(135deg, rgba(245,158,11,0.5), rgba(245,158,11,0.8))"
-                            : "linear-gradient(135deg, rgba(1,154,103,0.6), rgba(1,154,103,0.9))" }}
+                            : "linear-gradient(135deg, rgba(29,182,160,0.6), rgba(29,182,160,0.9))" }}
                         >
                           {chatInitials(name)}
                         </div>
                       )}
                       {session.ai_paused && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center"
-                          style={{ background: "#f59e0b", border: "2px solid var(--surface-2)" }}>
+                        <div
+                          className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center"
+                          style={{ background: "#f59e0b", border: "2px solid var(--surface-1)" }}
+                        >
                           <BotOff size={8} className="text-white" />
                         </div>
                       )}
                     </div>
 
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center justify-between mb-1">
                         <span className={cn("text-sm font-medium truncate", session.ai_paused ? "text-z-dim" : "text-z-text")}>{name}</span>
                         <span className="text-[10px] text-z-faint shrink-0 ml-2">{relativeTime(session.last_message_at)}</span>
                       </div>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-3">
                         <p className="text-xs text-z-dim truncate flex-1">
                           {session.ai_paused
                             ? <span className="flex items-center gap-1" style={{ color: "#f59e0b" }}><BotOff size={9} />IA bloqueada</span>
-                            : <>{session.last_message_from_me && <span className="text-[#019A67] mr-1">Você:</span>}{session.last_message_text ?? "Sem mensagens"}</>
+                            : <>{session.last_message_from_me && <span className="text-[#1DB6A0] mr-1">Você:</span>}{session.last_message_text ?? "Sem mensagens"}</>
                           }
                         </p>
                         {session.unread_count > 0 && (
-                          <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ml-1.5 shrink-0" style={{ background: "#019A67" }}>
+                          <span className="min-w-5 h-5 px-1 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0" style={{ background: "#1DB6A0" }}>
                             {session.unread_count > 9 ? "9+" : session.unread_count}
                           </span>
                         )}
@@ -813,68 +881,92 @@ export default function ChatsPage() {
         </div>
       </div>
 
-      {/* Chat view */}
-      <div className="flex-1 flex flex-col">
+      <div
+        className="min-w-0 flex-1 flex flex-col overflow-hidden rounded-[30px] border"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, var(--surface-1) 100%)",
+          borderColor: "rgba(29,182,160,0.12)",
+          boxShadow: "var(--z-shadow-md)",
+        }}
+      >
         {selectedSession ? (
           <>
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border" style={{ background: "var(--surface-1)" }}>
-              <div className="flex items-center gap-3">
+            <div
+              className="flex items-center justify-between px-5 py-4 border-b"
+              style={{
+                background: "linear-gradient(180deg, rgba(29,182,160,0.06) 0%, rgba(29,182,160,0.01) 100%)",
+                borderColor: "rgba(29,182,160,0.1)",
+              }}
+            >
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="relative">
                   {selectedSession.wa_profile_pic ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={selectedSession.wa_profile_pic} alt={selectedName} className="w-9 h-9 rounded-full object-cover" />
+                    <img src={selectedSession.wa_profile_pic} alt={selectedName} className="w-11 h-11 rounded-[18px] object-cover" />
                   ) : (
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium text-white" style={{ background: "linear-gradient(135deg, rgba(1,154,103,0.6), rgba(1,154,103,0.9))" }}>
+                    <div className="w-11 h-11 rounded-[18px] flex items-center justify-center text-sm font-medium text-white" style={{ background: "linear-gradient(135deg, rgba(29,182,160,0.6), rgba(29,182,160,0.9))" }}>
                       {chatInitials(selectedName)}
                     </div>
                   )}
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-z-text">{selectedName}</p>
-                  <p className="text-xs text-z-dim flex items-center gap-1">
-                    {selectedSession.wa_phone && <span>{selectedSession.wa_phone}</span>}
+                <div className="min-w-0">
+                  <p className="text-[19px] leading-none truncate" style={{ color: "var(--z-text)", fontFamily: "var(--font-display)", fontWeight: 600 }}>
+                    {selectedName}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    {selectedSession.wa_phone && (
+                      <span className="px-2.5 py-1 rounded-full text-[10px]" style={{ background: "rgba(255,255,255,0.78)", color: "var(--z-text-dim)", border: "1px solid rgba(29,182,160,0.08)" }}>
+                        {selectedSession.wa_phone}
+                      </span>
+                    )}
+                    <span className="px-2.5 py-1 rounded-full text-[10px]" style={{ background: selectedSession.ai_paused ? "rgba(245,158,11,0.12)" : "rgba(29,182,160,0.12)", color: selectedSession.ai_paused ? "#f59e0b" : "#1DB6A0" }}>
+                      {selectedSession.ai_paused ? "IA em pausa" : "IA em acompanhamento"}
+                    </span>
                     {selectedSession.status !== "open" && (
-                      <span className="px-1.5 py-0.5 rounded text-[9px]" style={{ background: "rgba(1,154,103,0.1)", color: "#019A67" }}>
+                      <span className="px-2.5 py-1 rounded-full text-[10px]" style={{ background: "rgba(255,255,255,0.78)", color: "#1DB6A0", border: "1px solid rgba(29,182,160,0.08)" }}>
                         {STATUS_LABELS[selectedSession.status] ?? selectedSession.status}
                       </span>
                     )}
-                  </p>
+                  </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-1">
-                {/* AI pause toggle */}
                 <button
                   onClick={toggleAiPaused}
                   title={selectedSession.ai_paused ? "IA bloqueada — clique para reativar" : "Bloquear IA para esta conversa"}
                   className="flex items-center gap-1.5 h-8 px-2.5 rounded-xl transition-all text-xs font-medium"
                   style={selectedSession.ai_paused
                     ? { background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", color: "#f59e0b" }
-                    : { background: "transparent", border: "1px solid transparent", color: "var(--z-dim)" }}
+                    : { background: "rgba(255,255,255,0.72)", border: "1px solid rgba(29,182,160,0.08)", color: "var(--z-text-dim)" }}
                 >
                   {selectedSession.ai_paused ? <BotOff size={14} /> : <Bot size={14} />}
                   <span className="hidden sm:inline">{selectedSession.ai_paused ? "IA bloqueada" : "IA ativa"}</span>
                 </button>
-                <button className="w-8 h-8 rounded-xl flex items-center justify-center text-z-dim hover:text-[#019A67] hover:bg-[rgba(1,154,103,0.1)] transition-all">
+                <button className="w-8 h-8 rounded-xl flex items-center justify-center text-z-dim hover:text-[#1DB6A0] hover:bg-[rgba(29,182,160,0.1)] transition-all">
                   <Phone size={15} />
                 </button>
-                <button className="w-8 h-8 rounded-xl flex items-center justify-center text-z-dim hover:text-[#019A67] hover:bg-[rgba(1,154,103,0.1)] transition-all">
+                <button className="w-8 h-8 rounded-xl flex items-center justify-center text-z-dim hover:text-[#1DB6A0] hover:bg-[rgba(29,182,160,0.1)] transition-all">
                   <Video size={15} />
                 </button>
-                <button className="w-8 h-8 rounded-xl flex items-center justify-center text-z-dim hover:text-[#019A67] hover:bg-[rgba(1,154,103,0.1)] transition-all">
+                <button className="w-8 h-8 rounded-xl flex items-center justify-center text-z-dim hover:text-[#1DB6A0] hover:bg-[rgba(29,182,160,0.1)] transition-all">
                   <Search size={15} />
                 </button>
-                <button className="w-8 h-8 rounded-xl flex items-center justify-center text-z-dim hover:text-[#019A67] hover:bg-[rgba(1,154,103,0.1)] transition-all">
+                <button className="w-8 h-8 rounded-xl flex items-center justify-center text-z-dim hover:text-[#1DB6A0] hover:bg-[rgba(29,182,160,0.1)] transition-all">
                   <MoreVertical size={15} />
                 </button>
               </div>
             </div>
 
-            {/* Messages */}
             <div
-              className="flex-1 overflow-y-auto px-5 py-4 space-y-3"
-              style={{ background: "radial-gradient(ellipse 60% 40% at 50% 80%, rgba(1,154,103,0.03) 0%, transparent 70%)" }}
+              className="flex-1 overflow-y-auto px-5 py-5 space-y-3"
+              style={{
+                background: `
+                  radial-gradient(circle at top left, rgba(29,182,160,0.08), transparent 28%),
+                  radial-gradient(circle at bottom right, rgba(34,211,192,0.06), transparent 30%),
+                  linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(245,247,250,0.95) 100%)
+                `,
+              }}
             >
               {loadingMessages ? (
                 <div className="flex items-center justify-center h-full">
@@ -892,7 +984,7 @@ export default function ChatsPage() {
                     <>
                       <Wifi size={32} className="text-z-faint" />
                       <p className="text-sm text-z-dim">WhatsApp não conectado</p>
-                      <a href="/dashboard/settings" className="text-xs text-[#019A67] hover:text-[#01c47f] transition-colors">
+                      <a href="/dashboard/settings" className="text-xs text-[#1DB6A0] hover:text-[#22d3c0] transition-colors">
                         Conectar WhatsApp →
                       </a>
                     </>
@@ -901,9 +993,14 @@ export default function ChatsPage() {
               ) : (
                 <>
                   <div className="flex items-center gap-3 py-2">
-                    <div className="flex-1 h-px" style={{ background: "rgba(1,154,103,0.1)" }} />
-                    <span className="text-[10px] text-z-faint px-2">Mensagens</span>
-                    <div className="flex-1 h-px" style={{ background: "rgba(1,154,103,0.1)" }} />
+                    <div className="flex-1 h-px" style={{ background: "rgba(29,182,160,0.1)" }} />
+                    <span
+                      className="text-[10px] px-2.5 py-1 rounded-full"
+                      style={{ color: "var(--z-text-faint)", background: "rgba(255,255,255,0.72)", border: "1px solid rgba(29,182,160,0.08)" }}
+                    >
+                      Linha do tempo
+                    </span>
+                    <div className="flex-1 h-px" style={{ background: "rgba(29,182,160,0.1)" }} />
                   </div>
                   <AnimatePresence>
                     {messages.map((msg, i) => (
@@ -917,14 +1014,14 @@ export default function ChatsPage() {
                         <div
                           className="max-w-[70%] px-4 py-2.5 rounded-2xl text-sm"
                           style={msg.fromMe
-                            ? { background: "linear-gradient(135deg, #019A67, #01a870)", color: "white", borderBottomRightRadius: "4px", boxShadow: "0 2px 12px rgba(1,154,103,0.25)" }
-                            : { background: "var(--secondary)", border: "1px solid rgba(1,154,103,0.12)", color: "var(--z-text)", borderBottomLeftRadius: "4px" }
+                            ? { background: "linear-gradient(135deg, #1DB6A0, #19a896)", color: "white", borderBottomRightRadius: "4px", boxShadow: "0 2px 12px rgba(29,182,160,0.25)" }
+                            : { background: "rgba(255,255,255,0.82)", border: "1px solid rgba(29,182,160,0.12)", color: "var(--z-text)", borderBottomLeftRadius: "4px" }
                           }
                         >
                           {msg.type === "audio" ? (
                             msg.audioLoading ? (
                               <div className="flex items-center gap-2 py-1" style={{ minWidth: "180px" }}>
-                                <RefreshCw size={12} className="animate-spin shrink-0" style={{ color: msg.fromMe ? "rgba(255,255,255,0.7)" : "#019A67" }} />
+                                <RefreshCw size={12} className="animate-spin shrink-0" style={{ color: msg.fromMe ? "rgba(255,255,255,0.7)" : "#1DB6A0" }} />
                                 <span className="text-xs opacity-70">Carregando áudio...</span>
                               </div>
                             ) : msg.audioUrl ? (
@@ -935,7 +1032,7 @@ export default function ChatsPage() {
                           ) : msg.type === "image" ? (
                             msg.imageLoading ? (
                               <div className="flex items-center gap-2 py-1" style={{ minWidth: "160px" }}>
-                                <RefreshCw size={12} className="animate-spin shrink-0" style={{ color: msg.fromMe ? "rgba(255,255,255,0.7)" : "#019A67" }} />
+                                <RefreshCw size={12} className="animate-spin shrink-0" style={{ color: msg.fromMe ? "rgba(255,255,255,0.7)" : "#1DB6A0" }} />
                                 <span className="text-xs opacity-70">Carregando imagem...</span>
                               </div>
                             ) : msg.imageUrl ? (
@@ -975,8 +1072,10 @@ export default function ChatsPage() {
               )}
             </div>
 
-            {/* Input */}
-            <div className="px-4 py-3 border-t border-border" style={{ background: "var(--surface-1)" }}>
+            <div
+              className="px-4 py-4 border-t"
+              style={{ background: "rgba(255,255,255,0.86)", borderColor: "rgba(29,182,160,0.1)" }}
+            >
               {selectedSession.ai_paused && (
                 <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-xl text-xs"
                   style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", color: "#f59e0b" }}>
@@ -988,15 +1087,21 @@ export default function ChatsPage() {
               {!isConfigured && (
                 <div className="text-center text-xs text-z-faint mb-2">
                   Configure o WhatsApp em{" "}
-                  <a href="/dashboard/settings" className="text-[#019A67]">Configurações</a>{" "}
+                  <a href="/dashboard/settings" className="text-[#1DB6A0]">Configurações</a>{" "}
                   para enviar mensagens.
                 </div>
               )}
-              <div className="flex items-center gap-2 px-3 py-2 rounded-2xl" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.14)" }}>
-                <button className="text-z-dim hover:text-[#019A67] transition-colors p-1">
+              <div
+                className="flex items-center gap-2 px-3 py-2.5 rounded-[24px]"
+                style={{
+                  background: "linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(234,246,244,0.9) 100%)",
+                  border: "1px solid rgba(29,182,160,0.14)",
+                }}
+              >
+                <button className="text-z-dim hover:text-[#1DB6A0] transition-colors p-1">
                   <Smile size={18} />
                 </button>
-                <button className="text-z-dim hover:text-[#019A67] transition-colors p-1">
+                <button className="text-z-dim hover:text-[#1DB6A0] transition-colors p-1">
                   <Paperclip size={18} />
                 </button>
                 <input
@@ -1013,11 +1118,11 @@ export default function ChatsPage() {
                   whileTap={{ scale: 0.95 }}
                   onClick={handleSend}
                   disabled={!inputValue.trim() || !isConfigured || sending}
-                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all disabled:opacity-40"
+                  className="w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 transition-all disabled:opacity-40"
                   style={{
-                    background: inputValue.trim() && isConfigured ? "linear-gradient(135deg, #019A67, #01c47f)" : "rgba(1,154,103,0.15)",
+                    background: inputValue.trim() && isConfigured ? "linear-gradient(135deg, #1DB6A0, #22d3c0)" : "rgba(29,182,160,0.15)",
                     color: inputValue.trim() && isConfigured ? "white" : "#6b8f78",
-                    boxShadow: inputValue.trim() && isConfigured ? "0 0 12px rgba(1,154,103,0.3)" : "none",
+                    boxShadow: inputValue.trim() && isConfigured ? "0 0 12px rgba(29,182,160,0.3)" : "none",
                   }}
                 >
                   {sending ? <RefreshCw size={13} className="animate-spin" /> : <Send size={14} />}
@@ -1026,10 +1131,18 @@ export default function ChatsPage() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center space-y-3">
+          <div className="flex-1 flex items-center justify-center p-8">
+            <div
+              className="text-center space-y-4 rounded-[32px] px-8 py-10"
+              style={{ background: "rgba(29,182,160,0.05)", border: "1px solid rgba(29,182,160,0.12)" }}
+            >
               <MessageCircle size={40} className="text-z-faint mx-auto" />
-              <p className="text-sm text-z-dim">Selecione uma conversa</p>
+              <div>
+                <p className="text-lg" style={{ color: "var(--z-text)", fontFamily: "var(--font-display)", fontWeight: 600 }}>
+                  Escolha uma conversa
+                </p>
+                <p className="text-sm text-z-dim mt-2">A área de leitura fica isolada para dar mais foco ao atendimento.</p>
+              </div>
             </div>
           </div>
         )}

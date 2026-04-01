@@ -70,7 +70,7 @@ const DAYS = [
 ] as const;
 
 const COLOR_PRESETS = [
-  "#019A67", "#01c47f", "#3b82f6", "#8b5cf6", "#f59e0b",
+  "#1DB6A0", "#22d3c0", "#3b82f6", "#8b5cf6", "#f59e0b",
   "#ef4444", "#ec4899", "#06b6d4", "#84cc16", "#f97316",
 ];
 
@@ -105,8 +105,8 @@ function SectionHeader({ icon, title, subtitle }: { icon: React.ReactNode; title
   return (
     <div className="flex items-center gap-3">
       <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-        style={{ background: "rgba(1,154,103,0.1)", border: "1px solid rgba(1,154,103,0.2)" }}>
-        <span style={{ color: "#019A67" }}>{icon}</span>
+        style={{ background: "rgba(29,182,160,0.1)", border: "1px solid rgba(29,182,160,0.2)" }}>
+        <span style={{ color: "#1DB6A0" }}>{icon}</span>
       </div>
       <div>
         <h2 className="text-sm font-medium" style={{ color: "var(--z-text)" }}>{title}</h2>
@@ -124,7 +124,7 @@ function SaveButton({ saving, saved, onClick }: { saving: boolean; saved: boolea
       onClick={onClick}
       disabled={saving}
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-60"
-      style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 16px rgba(1,154,103,0.25)" }}
+      style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)", boxShadow: "0 0 16px rgba(29,182,160,0.25)" }}
     >
       {saving ? <RefreshCw size={14} className="animate-spin" /> : saved ? <Check size={14} /> : <Save size={14} />}
       {saved ? "Salvo!" : "Salvar"}
@@ -186,7 +186,7 @@ function TabPerfil({ clinicId }: { clinicId: string }) {
             onChange={(e) => setName(e.target.value)}
             className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
             style={inputStyle}
-            onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(1,154,103,0.5)")}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(29,182,160,0.5)")}
             onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
           />
         </div>
@@ -202,7 +202,7 @@ function TabPerfil({ clinicId }: { clinicId: string }) {
             onChange={(e) => setAddress(e.target.value)}
             className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
             style={inputStyle}
-            onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(1,154,103,0.5)")}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(29,182,160,0.5)")}
             onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
           />
           <p className="text-[10px] mt-1" style={{ color: "var(--z-text-faint)" }}>
@@ -257,7 +257,7 @@ function TabUsuarios({ clinicId }: { clinicId: string }) {
     role === "owner" ? "Proprietário" : role === "admin" ? "Admin" : "Membro";
 
   const roleColor = (role: string) =>
-    role === "owner" ? "#019A67" : role === "admin" ? "#3b82f6" : "var(--z-text-dim)";
+    role === "owner" ? "#1DB6A0" : role === "admin" ? "#3b82f6" : "var(--z-text-dim)";
 
   return (
     <CardShell>
@@ -279,7 +279,7 @@ function TabUsuarios({ clinicId }: { clinicId: string }) {
             >
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white shrink-0"
-                style={{ background: "linear-gradient(135deg, #019A67, #01c47f)" }}
+                style={{ background: "linear-gradient(135deg, #1DB6A0, #22d3c0)" }}
               >
                 {(m.profiles?.full_name ?? "?").charAt(0).toUpperCase()}
               </div>
@@ -400,8 +400,8 @@ function TabHorarios({ clinicId }: { clinicId: string }) {
                 key={key}
                 className="rounded-xl p-3 transition-all"
                 style={{
-                  background: active ? "rgba(1,154,103,0.06)" : "var(--muted)",
-                  border: `1px solid ${active ? "rgba(1,154,103,0.15)" : "var(--border)"}`,
+                  background: active ? "rgba(29,182,160,0.06)" : "var(--muted)",
+                  border: `1px solid ${active ? "rgba(29,182,160,0.15)" : "var(--border)"}`,
                 }}
               >
                 {/* Row: toggle + day name */}
@@ -409,7 +409,7 @@ function TabHorarios({ clinicId }: { clinicId: string }) {
                   <button
                     onClick={() => toggleDay(key)}
                     className="w-8 h-4 rounded-full transition-all shrink-0 relative"
-                    style={{ background: active ? "#019A67" : "rgba(255,255,255,0.1)" }}
+                    style={{ background: active ? "#1DB6A0" : "rgba(255,255,255,0.1)" }}
                   >
                     <div
                       className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all"
@@ -461,7 +461,7 @@ function TabHorarios({ clinicId }: { clinicId: string }) {
                     <button
                       onClick={() => addPeriod(key)}
                       className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg transition-colors mt-0.5"
-                      style={{ color: "#019A67", background: "rgba(1,154,103,0.07)", border: "1px dashed rgba(1,154,103,0.3)" }}
+                      style={{ color: "#1DB6A0", background: "rgba(29,182,160,0.07)", border: "1px dashed rgba(29,182,160,0.3)" }}
                     >
                       <Plus size={10} /> add break
                     </button>
@@ -488,7 +488,7 @@ function TabTipos({ clinicId }: { clinicId: string }) {
   const [types, setTypes] = useState<AppointmentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null); // id or "new"
-  const [form, setForm] = useState<TypeForm>({ name: "", duration_minutes: 30, color: "#019A67" });
+  const [form, setForm] = useState<TypeForm>({ name: "", duration_minutes: 30, color: "#1DB6A0" });
   const [saving, setSaving] = useState(false);
 
   const load = () => {
@@ -507,7 +507,7 @@ function TabTipos({ clinicId }: { clinicId: string }) {
   useEffect(() => { load(); }, [clinicId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openNew = () => {
-    setForm({ name: "", duration_minutes: 30, color: "#019A67" });
+    setForm({ name: "", duration_minutes: 30, color: "#1DB6A0" });
     setEditing("new");
   };
 
@@ -554,7 +554,7 @@ function TabTipos({ clinicId }: { clinicId: string }) {
           whileTap={{ scale: 0.96 }}
           onClick={openNew}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-white"
-          style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}
+          style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}
         >
           <Plus size={13} />
           Novo tipo
@@ -569,9 +569,9 @@ function TabTipos({ clinicId }: { clinicId: string }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             className="rounded-xl p-4 space-y-3"
-            style={{ background: "rgba(1,154,103,0.04)", border: "1px solid rgba(1,154,103,0.2)" }}
+            style={{ background: "rgba(29,182,160,0.04)", border: "1px solid rgba(29,182,160,0.2)" }}
           >
-            <p className="text-xs font-medium" style={{ color: "#019A67" }}>
+            <p className="text-xs font-medium" style={{ color: "#1DB6A0" }}>
               {editing === "new" ? "Novo tipo de consulta" : "Editar tipo"}
             </p>
 
@@ -585,7 +585,7 @@ function TabTipos({ clinicId }: { clinicId: string }) {
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   className="w-full px-3 py-2 rounded-lg text-sm outline-none"
                   style={inputStyle}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(1,154,103,0.5)")}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(29,182,160,0.5)")}
                   onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
                 />
               </div>
@@ -599,7 +599,7 @@ function TabTipos({ clinicId }: { clinicId: string }) {
                   onChange={(e) => setForm((f) => ({ ...f, duration_minutes: parseInt(e.target.value) || 30 }))}
                   className="w-full px-3 py-2 rounded-lg text-sm outline-none"
                   style={inputStyle}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(1,154,103,0.5)")}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(29,182,160,0.5)")}
                   onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
                 />
               </div>
@@ -631,7 +631,7 @@ function TabTipos({ clinicId }: { clinicId: string }) {
                 onClick={handleSave}
                 disabled={saving}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-60"
-                style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}
+                style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}
               >
                 {saving ? <RefreshCw size={13} className="animate-spin" /> : <Check size={13} />}
                 Salvar
@@ -673,7 +673,7 @@ function TabTipos({ clinicId }: { clinicId: string }) {
                   onClick={() => openEdit(t)}
                   className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
                   style={{ color: "var(--z-text-dim)" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "#019A67")}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#1DB6A0")}
                   onMouseLeave={(e) => (e.currentTarget.style.color = "var(--z-text-dim)")}
                 >
                   <Pencil size={13} />
@@ -796,7 +796,7 @@ function TabWhatsapp({ clinicId }: { clinicId: string }) {
   const statusConfig: Record<ConnectionStatus, { label: string; color: string; bg: string; dot: string }> = {
     idle:         { label: "Não verificado",         color: "var(--z-text-dim)", bg: "var(--muted)",                    dot: "#6b7280" },
     loading:      { label: "Verificando...",          color: "#f59e0b",           bg: "rgba(245,158,11,0.08)",            dot: "#f59e0b" },
-    connected:    { label: "Conectado",               color: "#019A67",           bg: "rgba(1,154,103,0.08)",             dot: "#019A67" },
+    connected:    { label: "Conectado",               color: "#1DB6A0",           bg: "rgba(29,182,160,0.08)",             dot: "#1DB6A0" },
     connecting:   { label: "Aguardando QR Code",      color: "#f59e0b",           bg: "rgba(245,158,11,0.08)",            dot: "#f59e0b" },
     disconnected: { label: "Desconectado",            color: "var(--z-text-dim)", bg: "var(--muted)",                    dot: "#6b7280" },
     error:        { label: "Erro de conexão",         color: "var(--destructive)", bg: "rgba(220,38,38,0.06)",           dot: "#e05555" },
@@ -875,14 +875,14 @@ function TabWhatsapp({ clinicId }: { clinicId: string }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             className="flex items-center gap-4 p-4 rounded-xl"
-            style={{ background: "rgba(1,154,103,0.05)", border: "1px solid rgba(1,154,103,0.15)" }}
+            style={{ background: "rgba(29,182,160,0.05)", border: "1px solid rgba(29,182,160,0.15)" }}
           >
             {instance.profilePicUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={instance.profilePicUrl} alt="Profile" className="w-11 h-11 rounded-full shrink-0 object-cover" />
             ) : (
               <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0"
-                style={{ background: "linear-gradient(135deg, #019A67, #01c47f)" }}>
+                style={{ background: "linear-gradient(135deg, #1DB6A0, #22d3c0)" }}>
                 WA
               </div>
             )}
@@ -916,7 +916,7 @@ function TabWhatsapp({ clinicId }: { clinicId: string }) {
               whileTap={{ scale: 0.97 }}
               onClick={handleConnect}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white"
-              style={{ background: "linear-gradient(135deg, #019A67, #01a870)", boxShadow: "0 0 16px rgba(1,154,103,0.25)" }}
+              style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)", boxShadow: "0 0 16px rgba(29,182,160,0.25)" }}
             >
               <Wifi size={14} />
               Conectar via QR Code
@@ -941,7 +941,7 @@ function TabWhatsapp({ clinicId }: { clinicId: string }) {
                   src={qrCode}
                   alt="QR Code WhatsApp"
                   className="w-52 h-52 rounded-xl"
-                  style={{ border: "3px solid rgba(1,154,103,0.25)" }}
+                  style={{ border: "3px solid rgba(29,182,160,0.25)" }}
                 />
                 <p className="text-xs text-center" style={{ color: "var(--z-text-dim)" }}>
                   Abra o WhatsApp no celular e escaneie o QR code
@@ -1062,14 +1062,14 @@ function TabGoogleCalendar({ clinicId }: { clinicId: string }) {
                 key={doc.id}
                 className="flex items-center justify-between rounded-xl px-4 py-3"
                 style={{
-                  background: isConnected ? "rgba(1,154,103,0.05)" : "var(--input)",
-                  border: `1px solid ${isConnected ? "rgba(1,154,103,0.2)" : "rgba(1,154,103,0.08)"}`,
+                  background: isConnected ? "rgba(29,182,160,0.05)" : "var(--input)",
+                  border: `1px solid ${isConnected ? "rgba(29,182,160,0.2)" : "rgba(29,182,160,0.08)"}`,
                 }}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 text-xs font-semibold text-white"
-                    style={{ background: doc.color ?? "#019A67" }}
+                    style={{ background: doc.color ?? "#1DB6A0" }}
                   >
                     {doc.name[0]}
                   </div>
@@ -1078,7 +1078,7 @@ function TabGoogleCalendar({ clinicId }: { clinicId: string }) {
                       {doc.name}
                     </p>
                     {isConnected && status?.email ? (
-                      <p className="text-[11px] truncate" style={{ color: "#019A67" }}>
+                      <p className="text-[11px] truncate" style={{ color: "#1DB6A0" }}>
                         {status.email}
                       </p>
                     ) : (
@@ -1092,7 +1092,7 @@ function TabGoogleCalendar({ clinicId }: { clinicId: string }) {
                 {isConnected ? (
                   <div className="flex items-center gap-2 shrink-0">
                     {syncResult[doc.id] && (
-                      <span className="text-[10px]" style={{ color: syncResult[doc.id].includes("Erro") ? "#e05555" : "#019A67" }}>
+                      <span className="text-[10px]" style={{ color: syncResult[doc.id].includes("Erro") ? "#e05555" : "#1DB6A0" }}>
                         {syncResult[doc.id]}
                       </span>
                     )}
@@ -1100,7 +1100,7 @@ function TabGoogleCalendar({ clinicId }: { clinicId: string }) {
                       onClick={() => handleSyncAll(doc.id)}
                       disabled={syncing === doc.id}
                       className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all disabled:opacity-60"
-                      style={{ color: "#019A67", background: "rgba(1,154,103,0.08)", border: "1px solid rgba(1,154,103,0.2)" }}
+                      style={{ color: "#1DB6A0", background: "rgba(29,182,160,0.08)", border: "1px solid rgba(29,182,160,0.2)" }}
                       title="Sincronizar agendamentos futuros pendentes"
                     >
                       <RefreshCw size={11} className={syncing === doc.id ? "animate-spin" : ""} />
@@ -1120,7 +1120,7 @@ function TabGoogleCalendar({ clinicId }: { clinicId: string }) {
                   <button
                     onClick={() => handleConnect(doc.id)}
                     className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all"
-                    style={{ color: "#019A67", background: "rgba(1,154,103,0.08)", border: "1px solid rgba(1,154,103,0.2)" }}
+                    style={{ color: "#1DB6A0", background: "rgba(29,182,160,0.08)", border: "1px solid rgba(29,182,160,0.2)" }}
                   >
                     <Link2 size={11} />
                     Conectar Google
@@ -1200,7 +1200,7 @@ function SettingsContent() {
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all"
             style={
               activeTab === tab.id
-                ? { background: "rgba(1,154,103,0.1)", color: "#019A67", border: "1px solid rgba(1,154,103,0.2)" }
+                ? { background: "rgba(29,182,160,0.1)", color: "#1DB6A0", border: "1px solid rgba(29,182,160,0.2)" }
                 : { color: "var(--z-text-dim)", border: "1px solid transparent" }
             }
           >
@@ -1219,9 +1219,9 @@ function SettingsContent() {
             exit={{ opacity: 0, y: -8 }}
             className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm"
             style={{
-              background: googleParam === "connected" ? "rgba(1,154,103,0.1)" : "rgba(224,85,85,0.1)",
-              border: `1px solid ${googleParam === "connected" ? "rgba(1,154,103,0.25)" : "rgba(224,85,85,0.25)"}`,
-              color: googleParam === "connected" ? "#019A67" : "#e05555",
+              background: googleParam === "connected" ? "rgba(29,182,160,0.1)" : "rgba(224,85,85,0.1)",
+              border: `1px solid ${googleParam === "connected" ? "rgba(29,182,160,0.25)" : "rgba(224,85,85,0.25)"}`,
+              color: googleParam === "connected" ? "#1DB6A0" : "#e05555",
             }}
           >
             {googleParam === "connected" ? <Check size={14} /> : <AlertCircle size={14} />}

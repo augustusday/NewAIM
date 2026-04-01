@@ -27,7 +27,7 @@ async function uazapiRequest(
 }
 
 const statusMeta: Record<string, { color: string; label: string; dot?: boolean }> = {
-  connected:    { color: "#019A67", label: "Conectado",   dot: true },
+  connected:    { color: "#1DB6A0", label: "Conectado",   dot: true },
   disconnected: { color: "#6b8f78", label: "Desconectado" },
   connecting:   { color: "#f59e0b", label: "Conectando",  dot: true },
   qr_ready:     { color: "#6366f1", label: "Aguardando QR", dot: true },
@@ -138,12 +138,12 @@ function ClinicWaCard({
   const hasInstance = !!clinic.uazapi_instance_token;
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.1)" }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.1)" }}>
       {/* Card header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-medium text-white shrink-0"
-            style={{ background: "linear-gradient(135deg, rgba(1,154,103,0.5), rgba(1,154,103,0.8))" }}>
+            style={{ background: "linear-gradient(135deg, rgba(29,182,160,0.5), rgba(29,182,160,0.8))" }}>
             {clinic.name.slice(0, 2).toUpperCase()}
           </div>
           <div>
@@ -158,11 +158,11 @@ function ClinicWaCard({
 
         <div className="flex items-center gap-1.5">
           {hasInstance && (
-            <button onClick={fetchStatus} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-z-text hover:bg-[rgba(1,154,103,0.08)] transition-all">
+            <button onClick={fetchStatus} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-z-text hover:bg-[rgba(29,182,160,0.08)] transition-all">
               <RefreshCw size={13} />
             </button>
           )}
-          <button onClick={() => setShowConfig((p) => !p)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-z-text hover:bg-[rgba(1,154,103,0.08)] transition-all">
+          <button onClick={() => setShowConfig((p) => !p)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:text-z-text hover:bg-[rgba(29,182,160,0.08)] transition-all">
             <Settings size={13} />
           </button>
         </div>
@@ -173,16 +173,16 @@ function ClinicWaCard({
         {showConfig && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }} className="overflow-hidden border-b border-border">
-            <div className="px-5 py-4 space-y-3" style={{ background: "rgba(1,154,103,0.03)" }}>
+            <div className="px-5 py-4 space-y-3" style={{ background: "rgba(29,182,160,0.03)" }}>
               <p className="text-xs text-z-dim font-medium">Token da instância UAZAPI</p>
               <div className="flex gap-2">
                 <input type="text" value={token} onChange={(e) => setToken(e.target.value)}
                   placeholder="Cole o token da instância aqui..."
                   className="flex-1 px-3 py-2 rounded-xl text-xs text-z-text placeholder:text-z-faint outline-none font-mono"
-                  style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+                  style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }} />
                 <motion.button whileHover={{ scale: 1.02 }} onClick={handleSaveToken} disabled={savingToken}
                   className="px-3 py-2 rounded-xl text-xs text-white font-medium flex items-center gap-1.5 disabled:opacity-60"
-                  style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+                  style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}>
                   {savingToken ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
                   Salvar
                 </motion.button>
@@ -191,7 +191,7 @@ function ClinicWaCard({
                 <>
                   <div className="flex items-center justify-between">
                     <button onClick={copyToken} className="flex items-center gap-1.5 text-[10px] text-z-dim hover:text-z-text transition-colors">
-                      {copied ? <Check size={11} className="text-[#019A67]" /> : <Copy size={11} />}
+                      {copied ? <Check size={11} className="text-[#1DB6A0]" /> : <Copy size={11} />}
                       {copied ? "Copiado!" : "Copiar token atual"}
                     </button>
                     <button onClick={handleClearInstance} className="flex items-center gap-1.5 text-[10px] text-[#e05555] hover:opacity-80 transition-opacity">
@@ -201,14 +201,14 @@ function ClinicWaCard({
                   {/* Webhook URL display */}
                   <div className="mt-1 space-y-1.5">
                     <p className="text-[10px] text-z-faint flex items-center gap-1"><Link size={10} /> URL do webhook registrado no UAZAPI:</p>
-                    <div className="px-2.5 py-1.5 rounded-lg font-mono text-[10px] text-z-dim break-all" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+                    <div className="px-2.5 py-1.5 rounded-lg font-mono text-[10px] text-z-dim break-all" style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}>
                       {typeof window !== "undefined" ? `${window.location.origin}/api/webhooks/uazapi?token=${clinic.uazapi_instance_token}` : `/api/webhooks/uazapi?token=${clinic.uazapi_instance_token}`}
                     </div>
                     {webhookStatus === "registering" && (
                       <p className="text-[10px] text-z-faint flex items-center gap-1"><Loader2 size={10} className="animate-spin" /> Registrando webhook…</p>
                     )}
                     {webhookStatus === "ok" && (
-                      <p className="text-[10px] text-[#019A67] flex items-center gap-1"><Check size={10} /> Webhook registrado com sucesso</p>
+                      <p className="text-[10px] text-[#1DB6A0] flex items-center gap-1"><Check size={10} /> Webhook registrado com sucesso</p>
                     )}
                     {webhookStatus === "error" && (
                       <p className="text-[10px] text-[#e05555] flex items-center gap-1"><AlertCircle size={10} /> Falha ao registrar webhook — verifique a URL do servidor</p>
@@ -230,16 +230,16 @@ function ClinicWaCard({
             <p className="text-xs text-z-faint">Configure o token da instância UAZAPI para esta clínica.</p>
             <button onClick={() => setShowConfig(true)}
               className="flex items-center gap-2 mx-auto px-4 py-2 rounded-xl text-sm text-white font-medium"
-              style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+              style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}>
               <Plus size={14} /> Configurar instância
             </button>
           </div>
         ) : status === "connected" ? (
           <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "rgba(1,154,103,0.06)", border: "1px solid rgba(1,154,103,0.15)" }}>
-              <Wifi size={16} style={{ color: "#019A67" }} />
+            <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "rgba(29,182,160,0.06)", border: "1px solid rgba(29,182,160,0.15)" }}>
+              <Wifi size={16} style={{ color: "#1DB6A0" }} />
               <div>
-                <p className="text-xs font-medium text-[#01c47f]">WhatsApp conectado</p>
+                <p className="text-xs font-medium text-[#22d3c0]">WhatsApp conectado</p>
                 {profileName && <p className="text-[10px] text-z-dim">{profileName}</p>}
               </div>
             </div>
@@ -254,7 +254,7 @@ function ClinicWaCard({
           <div className="space-y-4">
             {/* QR Code */}
             {qrCode && (
-              <div className="flex flex-col items-center gap-3 p-4 rounded-xl" style={{ background: "rgba(1,154,103,0.04)", border: "1px solid rgba(1,154,103,0.1)" }}>
+              <div className="flex flex-col items-center gap-3 p-4 rounded-xl" style={{ background: "rgba(29,182,160,0.04)", border: "1px solid rgba(29,182,160,0.1)" }}>
                 <div className="flex items-center gap-2 text-xs text-z-dim">
                   <QrCode size={13} />
                   Escaneie o QR code no WhatsApp
@@ -269,9 +269,9 @@ function ClinicWaCard({
 
             {/* Pairing code */}
             {pairCode && (
-              <div className="text-center p-4 rounded-xl" style={{ background: "rgba(1,154,103,0.04)", border: "1px solid rgba(1,154,103,0.1)" }}>
+              <div className="text-center p-4 rounded-xl" style={{ background: "rgba(29,182,160,0.04)", border: "1px solid rgba(29,182,160,0.1)" }}>
                 <p className="text-[10px] text-z-dim mb-2">Código de emparelhamento</p>
-                <p className="text-2xl font-mono font-medium text-[#01c47f] tracking-[0.15em]">
+                <p className="text-2xl font-mono font-medium text-[#22d3c0] tracking-[0.15em]">
                   {pairCode.slice(0, 4)}-{pairCode.slice(4)}
                 </p>
               </div>
@@ -281,7 +281,7 @@ function ClinicWaCard({
             {!qrCode && !pairCode && (
               <button onClick={handleConnect} disabled={loading || !serverUrl}
                 className="w-full py-2.5 rounded-xl text-sm text-white font-medium flex items-center justify-center gap-2 disabled:opacity-60"
-                style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+                style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}>
                 {loading ? <Loader2 size={14} className="animate-spin" /> : <Wifi size={14} />}
                 {loading ? "Conectando..." : "Conectar WhatsApp"}
               </button>
@@ -361,11 +361,11 @@ export default function WhatsAppAdminPage() {
       </div>
 
       {/* Server URL card */}
-      <div className="rounded-2xl p-5" style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.15)" }}>
+      <div className="rounded-2xl p-5" style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.15)" }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(1,154,103,0.1)" }}>
-              <Settings size={15} style={{ color: "#019A67" }} />
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(29,182,160,0.1)" }}>
+              <Settings size={15} style={{ color: "#1DB6A0" }} />
             </div>
             <div>
               <p className="text-sm font-medium text-z-text">Servidor UAZAPI (global)</p>
@@ -373,11 +373,11 @@ export default function WhatsAppAdminPage() {
             </div>
           </div>
           {!editingUrl ? (
-            <button onClick={() => setEditingUrl(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs text-z-dim hover:text-z-text transition-all" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+            <button onClick={() => setEditingUrl(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs text-z-dim hover:text-z-text transition-all" style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}>
               <Settings size={11} /> Editar URL
             </button>
           ) : (
-            <button onClick={() => setEditingUrl(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)] transition-all">
+            <button onClick={() => setEditingUrl(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(29,182,160,0.08)] transition-all">
               <X size={13} />
             </button>
           )}
@@ -388,22 +388,22 @@ export default function WhatsAppAdminPage() {
             <input type="url" value={urlDraft} onChange={(e) => setUrlDraft(e.target.value)}
               placeholder="https://api.uazapi.com"
               className="flex-1 px-3 py-2.5 rounded-xl text-sm text-z-text placeholder:text-z-faint outline-none font-mono"
-              style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }} />
+              style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }} />
             <motion.button whileHover={{ scale: 1.02 }} onClick={handleSaveServerUrl} disabled={savingUrl}
               className="px-4 py-2.5 rounded-xl text-sm text-white font-medium flex items-center gap-2 disabled:opacity-60"
-              style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+              style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}>
               {savingUrl ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Salvar
             </motion.button>
           </div>
         ) : (
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl font-mono text-sm" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl font-mono text-sm" style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}>
             {serverUrl ? (
-              <><div className="w-2 h-2 rounded-full shrink-0 animate-pulse" style={{ background: "#019A67" }} /><span className="text-z-dim truncate">{serverUrl}</span></>
+              <><div className="w-2 h-2 rounded-full shrink-0 animate-pulse" style={{ background: "#1DB6A0" }} /><span className="text-z-dim truncate">{serverUrl}</span></>
             ) : (
               <><div className="w-2 h-2 rounded-full shrink-0" style={{ background: "#6b8f78" }} /><span className="text-z-faint">URL não configurada</span></>
             )}
-            {urlSaved && <span className="ml-auto text-[10px] text-[#019A67] flex items-center gap-1 shrink-0"><Check size={10} /> Salvo</span>}
+            {urlSaved && <span className="ml-auto text-[10px] text-[#1DB6A0] flex items-center gap-1 shrink-0"><Check size={10} /> Salvo</span>}
           </div>
         )}
 
@@ -415,11 +415,11 @@ export default function WhatsAppAdminPage() {
       </div>
 
       {/* OpenAI API Key card */}
-      <div className="rounded-2xl p-5" style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.15)" }}>
+      <div className="rounded-2xl p-5" style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.15)" }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(1,154,103,0.1)" }}>
-              <KeyRound size={15} style={{ color: "#019A67" }} />
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(29,182,160,0.1)" }}>
+              <KeyRound size={15} style={{ color: "#1DB6A0" }} />
             </div>
             <div>
               <p className="text-sm font-medium text-z-text">Chave OpenAI (global)</p>
@@ -427,11 +427,11 @@ export default function WhatsAppAdminPage() {
             </div>
           </div>
           {!editingKey ? (
-            <button onClick={() => setEditingKey(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs text-z-dim hover:text-z-text transition-all" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+            <button onClick={() => setEditingKey(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs text-z-dim hover:text-z-text transition-all" style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}>
               <Settings size={11} /> {openaiKey ? "Alterar chave" : "Configurar"}
             </button>
           ) : (
-            <button onClick={() => setEditingKey(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(1,154,103,0.08)] transition-all">
+            <button onClick={() => setEditingKey(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-z-dim hover:bg-[rgba(29,182,160,0.08)] transition-all">
               <X size={13} />
             </button>
           )}
@@ -439,7 +439,7 @@ export default function WhatsAppAdminPage() {
 
         {editingKey ? (
           <div className="flex gap-2">
-            <div className="flex-1 flex items-center gap-1 rounded-xl px-3" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.15)" }}>
+            <div className="flex-1 flex items-center gap-1 rounded-xl px-3" style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.15)" }}>
               <input
                 type={showKey ? "text" : "password"}
                 value={openaiDraft}
@@ -453,19 +453,19 @@ export default function WhatsAppAdminPage() {
             </div>
             <motion.button whileHover={{ scale: 1.02 }} onClick={handleSaveOpenaiKey} disabled={savingKey}
               className="px-4 py-2.5 rounded-xl text-sm text-white font-medium flex items-center gap-2 disabled:opacity-60"
-              style={{ background: "linear-gradient(135deg, #019A67, #01a870)" }}>
+              style={{ background: "linear-gradient(135deg, #1DB6A0, #19a896)" }}>
               {savingKey ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Salvar
             </motion.button>
           </div>
         ) : (
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl font-mono text-sm" style={{ background: "var(--input)", border: "1px solid rgba(1,154,103,0.1)" }}>
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl font-mono text-sm" style={{ background: "var(--input)", border: "1px solid rgba(29,182,160,0.1)" }}>
             {openaiKey ? (
-              <><div className="w-2 h-2 rounded-full shrink-0 animate-pulse" style={{ background: "#019A67" }} /><span className="text-z-dim truncate">sk-...{openaiKey.slice(-8)}</span></>
+              <><div className="w-2 h-2 rounded-full shrink-0 animate-pulse" style={{ background: "#1DB6A0" }} /><span className="text-z-dim truncate">sk-...{openaiKey.slice(-8)}</span></>
             ) : (
               <><div className="w-2 h-2 rounded-full shrink-0" style={{ background: "#6b8f78" }} /><span className="text-z-faint">Chave não configurada</span></>
             )}
-            {keySaved && <span className="ml-auto text-[10px] text-[#019A67] flex items-center gap-1 shrink-0"><Check size={10} /> Salvo</span>}
+            {keySaved && <span className="ml-auto text-[10px] text-[#1DB6A0] flex items-center gap-1 shrink-0"><Check size={10} /> Salvo</span>}
           </div>
         )}
 
@@ -479,11 +479,11 @@ export default function WhatsAppAdminPage() {
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Conectados",     value: loading ? "—" : String(connected),    color: "#019A67" },
+          { label: "Conectados",     value: loading ? "—" : String(connected),    color: "#1DB6A0" },
           { label: "Configurados",   value: loading ? "—" : String(configured),   color: "#6366f1" },
           { label: "Desconectados",  value: loading ? "—" : String(disconnected), color: "#6b8f78" },
         ].map((s) => (
-          <div key={s.label} className="rounded-xl p-4" style={{ background: "var(--surface-1)", border: "1px solid rgba(1,154,103,0.08)" }}>
+          <div key={s.label} className="rounded-xl p-4" style={{ background: "var(--surface-1)", border: "1px solid rgba(29,182,160,0.08)" }}>
             <p className="text-2xl text-z-text mb-0.5" style={{ fontWeight: 500 }}>{s.value}</p>
             <p className="text-xs" style={{ color: s.color }}>{s.label}</p>
           </div>
@@ -494,14 +494,14 @@ export default function WhatsAppAdminPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-2xl h-48 animate-pulse" style={{ background: "rgba(1,154,103,0.05)", border: "1px solid rgba(1,154,103,0.08)" }} />
+            <div key={i} className="rounded-2xl h-48 animate-pulse" style={{ background: "rgba(29,182,160,0.05)", border: "1px solid rgba(29,182,160,0.08)" }} />
           ))}
         </div>
       ) : clinics.length === 0 ? (
         <div className="text-center py-12">
           <Smartphone size={36} className="mx-auto text-z-faint mb-3" />
           <p className="text-sm text-z-dim">Nenhuma clínica cadastrada</p>
-          <a href="/admin/clinicas" className="mt-2 text-xs text-[#019A67] hover:text-[#01c47f] block">+ Criar primeira clínica</a>
+          <a href="/admin/clinicas" className="mt-2 text-xs text-[#1DB6A0] hover:text-[#22d3c0] block">+ Criar primeira clínica</a>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
