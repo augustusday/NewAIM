@@ -24,6 +24,9 @@ import {
   Calendar,
   Link2,
   Link2Off,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useUazapiConfig } from "@/hooks/use-uazapi-config";
 import { useClinic } from "@/hooks/use-clinic";
@@ -34,7 +37,7 @@ import type { Doctor } from "@/lib/database.types";
 
 type ConnectionStatus = "idle" | "loading" | "connected" | "connecting" | "disconnected" | "error";
 
-type Tab = "perfil" | "usuarios" | "horarios" | "tipos" | "whatsapp" | "google";
+type Tab = "perfil" | "usuarios" | "horarios" | "tipos" | "whatsapp" | "google" | "conta";
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "perfil",    label: "Perfil",       icon: <Building2 size={14} /> },
@@ -43,6 +46,7 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "tipos",     label: "Consultas",    icon: <Stethoscope size={14} /> },
   { id: "whatsapp",  label: "WhatsApp",     icon: <Wifi size={14} /> },
   { id: "google",    label: "Google",       icon: <Calendar size={14} /> },
+  { id: "conta",     label: "Conta",        icon: <KeyRound size={14} /> },
 ];
 
 const TIMEZONES = [
@@ -1135,6 +1139,175 @@ function TabGoogleCalendar({ clinicId }: { clinicId: string }) {
   );
 }
 
+// ── Tab Conta ─────────────────────────────────────────────────────────────────
+
+const passwordInputStyle = {
+  background: "var(--input)",
+  border: "1px solid var(--border)",
+  color: "var(--z-text)",
+  borderRadius: "10px",
+  padding: "9px 36px 9px 12px",
+  fontSize: "13px",
+  outline: "none",
+  width: "100%",
+} as const;
+
+function PasswordField({
+  label,
+  value,
+  onChange,
+  show,
+  onToggle,
+  autoComplete,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  show: boolean;
+  onToggle: () => void;
+  autoComplete?: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-medium" style={{ color: "var(--z-text-dim)" }}>{label}</label>
+      <div className="relative">
+        <input
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          autoComplete={autoComplete}
+          required
+          style={passwordInputStyle}
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute right-3 top-1/2 -translate-y-1/2"
+          style={{ color: "var(--z-text-dim)" }}
+        >
+          {show ? <EyeOff size={14} /> : <Eye size={14} />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TabConta() {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setFeedback(null);
+
+    if (newPassword.length < 6) {
+      setFeedback({ type: "error", message: "A nova senha deve ter pelo menos 6 caracteres." });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setFeedback({ type: "error", message: "As senhas não coincidem." });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error("Usuário não encontrado.");
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+      if (signInError) {
+        setFeedback({ type: "error", message: "Senha atual incorreta." });
+        return;
+      }
+
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+
+      setFeedback({ type: "success", message: "Senha atualizada com sucesso!" });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch {
+      setFeedback({ type: "error", message: "Erro ao atualizar senha. Tente novamente." });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <CardShell>
+      <div className="flex items-center gap-2 mb-4">
+        <KeyRound size={14} style={{ color: "#1DB6A0" }} />
+        <span className="text-sm font-medium" style={{ color: "var(--z-text)" }}>Redefinir Senha</span>
+      </div>
+      <form onSubmit={handleChangePassword} className="space-y-4">
+        <PasswordField
+          label="Senha atual"
+          value={currentPassword}
+          onChange={setCurrentPassword}
+          show={showCurrent}
+          onToggle={() => setShowCurrent((v) => !v)}
+          autoComplete="current-password"
+        />
+        <PasswordField
+          label="Nova senha"
+          value={newPassword}
+          onChange={setNewPassword}
+          show={showNew}
+          onToggle={() => setShowNew((v) => !v)}
+          autoComplete="new-password"
+        />
+        <PasswordField
+          label="Confirmar nova senha"
+          value={confirmPassword}
+          onChange={setConfirmPassword}
+          show={showConfirm}
+          onToggle={() => setShowConfirm((v) => !v)}
+          autoComplete="new-password"
+        />
+
+        <AnimatePresence>
+          {feedback && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs"
+              style={{
+                background: feedback.type === "success" ? "rgba(29,182,160,0.1)" : "rgba(224,85,85,0.1)",
+                border: `1px solid ${feedback.type === "success" ? "rgba(29,182,160,0.25)" : "rgba(224,85,85,0.25)"}`,
+                color: feedback.type === "success" ? "#1DB6A0" : "#e05555",
+              }}
+            >
+              {feedback.type === "success" ? <Check size={12} /> : <AlertCircle size={12} />}
+              {feedback.message}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button
+          type="submit"
+          disabled={saving || !currentPassword || !newPassword || !confirmPassword}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium transition-all disabled:opacity-50"
+          style={{ background: "#019A67", color: "#fff" }}
+        >
+          {saving ? <RefreshCw size={12} className="animate-spin" /> : <Save size={12} />}
+          {saving ? "Salvando…" : "Atualizar Senha"}
+        </button>
+      </form>
+    </CardShell>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
 function SettingsContent() {
@@ -1245,6 +1418,7 @@ function SettingsContent() {
           {activeTab === "tipos"    && <TabTipos           clinicId={clinicId} />}
           {activeTab === "whatsapp" && <TabWhatsapp        clinicId={clinicId} />}
           {activeTab === "google"   && <TabGoogleCalendar  clinicId={clinicId} />}
+          {activeTab === "conta"    && <TabConta />}
         </motion.div>
       </AnimatePresence>
     </div>
