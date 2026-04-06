@@ -1363,7 +1363,7 @@ function SettingsContent() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.04 }}
-        className="flex items-center gap-1 p-1 rounded-2xl w-fit"
+        className="flex items-center gap-1 p-1 rounded-2xl overflow-x-auto max-w-full"
         style={{ background: "var(--surface-1)", border: "1px solid var(--border)", boxShadow: "var(--z-shadow)" }}
       >
         {TABS.map((tab) => (
